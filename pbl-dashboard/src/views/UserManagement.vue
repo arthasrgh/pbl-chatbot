@@ -3,42 +3,39 @@
 
     <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="red-strip"></div>
 
-      <div class="sidebar-content">
-
+      <div class="logo-area">
+        <img :src="logo" class="logo" />
         <div>
-          <div class="menu-row">
-            <span>All Messages</span>
-            <strong>{{ users.length }}</strong>
-          </div>
-
-          <div class="menu-row">
-            <span>Unread</span>
-          </div>
-
-          <div class="line"></div>
-
-          <!-- MENU -->
-          <button class="menu-btn" @click="goDashboard">
-            Home
-          </button>
-
-          <button class="menu-btn" @click="goRiwayat">
-            Riwayat Chat
-          </button>
-
-          <button class="menu-btn active-btn">
-            Manajemen User
-          </button>
+          <h2>Bangkesbangpol</h2>
+          <p>Dashboard Bot</p>
         </div>
+      </div>
 
-        <!-- LOGOUT -->
-        <button class="logout-btn" @click="goHome">
-          Logout ↪
+      <div class="menu-section">
+
+        <button class="menu" @click="goDashboard">
+          <LayoutDashboard size="18" />
+          Dashboard
+        </button>
+
+        <button class="menu" @click="goRiwayat">
+          <MessageCircle size="18" />
+          Riwayat Chat
+        </button>
+
+        <button class="menu active">
+          <Users size="18" />
+          Manajemen User
         </button>
 
       </div>
+
+      <button class="logout-btn" @click="logout">
+        <LogOut size="18" />
+        Logout
+      </button>
+
     </aside>
 
     <!-- MAIN -->
@@ -210,8 +207,21 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import {
+  LayoutDashboard,
+  MessageCircle,
+  Users,
+  LogOut,
+  MessageSquareMore,
+  BarChart3,
+  Flame
+} from "lucide-vue-next"
+
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import Chart from "chart.js/auto"
+import api from "../services/api"
+import logo from "../assets/Logo_Boyo2.png"
 
 const router = useRouter()
 
@@ -416,8 +426,9 @@ const deleteUser = (index) => {
 }
 
 /* ROUTER */
-const goHome = () => {
-  router.push('/')
+const logout = () => {
+  localStorage.removeItem("isLogin")
+  router.push("/")
 }
 
 const goDashboard = () => {
@@ -443,66 +454,79 @@ const goRiwayat = () => {
 }
 
 /* SIDEBAR */
-.sidebar {
-  width: 265px;
-  background: #242741;
-  display: flex;
-  height : 100vh;
-  position: sticky;
-  top: 0;
+.sidebar{
+width:260px;
+background:#111827;
+padding:25px 20px;
+display:flex;
+flex-direction:column;
+justify-content:space-between;
 }
 
-.red-strip {
-  width: 55px;
-  background: #ef0033;
+.logo-area{
+display:flex;
+align-items:center;
+gap:14px;
+margin-bottom:40px;
 }
 
-.sidebar-content {
-  flex: 1;
-  padding: 60px 18px 18px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+.logo{
+width:50px;
+height:50px;
 }
 
-.menu-row {
-  display: flex;
-  justify-content: space-between;
-  color: white;
-  font-size: 14px;
-  margin-bottom: 12px;
+.logo-area h2{
+color:white;
+font-size:18px;
 }
 
-.line {
-  height: 2px;
-  background: white;
-  margin: 14px 0;
+.logo-area p{
+color:#9ca3af;
+font-size:13px;
 }
 
-.menu-btn {
-  width: 100%;
-  border: none;
-  padding: 10px;
-  border-radius: 8px;
-  font-weight: bold;
-  background: white;
-  cursor: pointer;
-  margin-bottom: 10px;
+.menu-section{
+display:flex;
+flex-direction:column;
+gap:12px;
 }
 
-.active-btn {
-  background: #ef0033;
-  color: white;
+.menu{
+border:none;
+padding:14px;
+border-radius:14px;
+display:flex;
+align-items:center;
+gap:12px;
+font-size:15px;
+font-weight:600;
+cursor:pointer;
+background:transparent;
+color:#d1d5db;
+transition:0.3s;
 }
 
-.logout-btn {
-  border: none;
-  background: white;
-  padding: 12px;
-  border-radius: 15px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
+.menu:hover{
+background:#1f2937;
+}
+
+.active{
+background:#ef4444;
+color:white;
+}
+
+.logout-btn{
+border:none;
+padding:14px;
+border-radius:14px;
+background:#ef4444;
+color:white;
+font-weight:bold;
+display:flex;
+align-items:center;
+justify-content:center;
+gap:10px;
+cursor:pointer;
 }
 
 /* MAIN */
@@ -516,7 +540,7 @@ const goRiwayat = () => {
 .top-header {
   position: fixed;
   top: 0;
-  left: 265px;
+  left: 260px;
   right: 0;
   background: #eeeeee;
   padding: 20px 40px;

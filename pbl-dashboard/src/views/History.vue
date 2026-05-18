@@ -1,41 +1,41 @@
 <template>
   <div class="dashboard">
-    <!-- Sidebar -->
+    
+    <!-- SIDEBAR -->
     <aside class="sidebar">
-      <div class="red-strip"></div>
 
-      <div class="sidebar-content">
+      <div class="logo-area">
+        <img :src="logo" class="logo" />
         <div>
-          <div class="menu-row">
-            <span>All Messages</span>
-            <strong>50</strong>
-          </div>
-
-          <div class="menu-row">
-            <span>Unread</span>
-          </div>
-
-          <div class="line"></div>
-
-          <!-- Menu -->
-          <button class="menu-btn" @click="goDashboard">
-            Home
-          </button>
-
-          <button class="menu-btn active-btn" @click="goRiwayat">
-            Riwayat Chat
-          </button>
-
-          <button class="menu-btn" @click="goManage">
-            Manajemen User
-          </button>
+          <h2>Bangkesbangpol</h2>
+          <p>Dashboard Bot</p>
         </div>
-
-        <!-- Logout -->
-        <button class="logout-btn" @click="goHome">
-          Logout ↪
-        </button>
       </div>
+
+      <div class="menu-section">
+
+        <button class="menu" @click="goDashboard">
+          <LayoutDashboard size="18" />
+          Dashboard
+        </button>
+
+        <button class="menu active" @click="goRiwayat">
+          <MessageCircle size="18" />
+          Riwayat Chat
+        </button>
+
+        <button class="menu" @click="goManage">
+          <Users size="18" />
+          Manajemen User
+        </button>
+
+      </div>
+
+      <button class="logout-btn" @click="logout">
+        <LogOut size="18" />
+        Logout
+      </button>
+
     </aside>
 
     <!-- Main -->
@@ -46,23 +46,35 @@
       </div>
     </main>
   </div>
+
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
+import {
+  LayoutDashboard,
+  MessageCircle,
+  Users,
+  LogOut,
+  MessageSquareMore,
+  BarChart3,
+  Flame
+} from "lucide-vue-next"
+
+import { ref, onMounted, nextTick } from "vue"
+import { useRouter } from "vue-router"
+import Chart from "chart.js/auto"
+import api from "../services/api"
+import logo from "../assets/Logo_Boyo2.png"
 
 const router = useRouter()
 
-const goHome = () => {
-  router.push('/') 
+const logout = () => {
+  localStorage.removeItem("isLogin")
+  router.push("/")
 }
 
 const goDashboard = () => {
   router.push('/dashboard')
-}
-
-const goRiwayat = () => {
-  router.push('/history')
 }
 
 const goManage = () => {
@@ -81,72 +93,86 @@ const goManage = () => {
 .dashboard {
   display: flex;
   min-height: 100vh;
+  background:#f4f7fb;
 }
 
 .sidebar {
-  width: 265px;
-  background: #242741;
-  display: flex;
-  height : 100vh;
-  position: sticky;
-  top: 0;
+width:260px;
+background:#111827;
+padding:25px 20px;
+display:flex;
+flex-direction:column;
+justify-content:space-between; 
 }
 
-.red-strip {
-  width: 55px;
-  background: #ef0033;
+
+.logo-area{
+display:flex;
+align-items:center;
+gap:14px;
+margin-bottom:40px;
 }
 
-.sidebar-content {
-  flex: 1;
-  padding: 60px 18px 18px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+.logo{
+width:50px;
+height:50px;
 }
 
-/* Menu */
-.menu-row {
-  display: flex;
-  justify-content: space-between;
-  color: white;
-  font-size: 14px;
-  margin-bottom: 12px;
+.logo-area h2{
+color:white;
+font-size:18px;
 }
 
-.line {
-  height: 2px;
-  background: white;
-  margin: 14px 0;
+.logo-area p{
+color:#9ca3af;
+font-size:13px;
 }
 
-.menu-btn {
-  width: 100%;
-  border: none;
-  padding: 10px;
-  border-radius: 8px;
-  font-weight: bold;
-  background: white;
-  cursor: pointer;
-  margin-bottom: 10px;
+.menu-section{
+display:flex;
+flex-direction:column;
+gap:12px;
 }
 
-/* ACTIVE BUTTON (buat halaman aktif) */
-.active-btn {
-  background: #ef0033;
-  color: white;
+.menu{
+border:none;
+padding:14px;
+border-radius:14px;
+display:flex;
+align-items:center;
+gap:12px;
+font-size:15px;
+font-weight:600;
+cursor:pointer;
+background:transparent;
+color:#d1d5db;
+transition:0.3s;
+}
+
+.menu:hover{
+background:#1f2937;
+}
+
+.active{
+background:#ef4444;
+color:white;
 }
 
 /* Logout */
 .logout-btn {
-  border: none;
-  background: white;
-  padding: 12px;
-  border-radius: 15px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
+border:none;
+padding:14px;
+border-radius:14px;
+background:#ef4444;
+color:white;
+font-weight:bold;
+display:flex;
+align-items:center;
+justify-content:center;
+gap:10px;
+cursor:pointer;
 }
+
 /* MAIN */
 .main-content {
   flex: 1;
@@ -160,9 +186,9 @@ const goManage = () => {
 .top-header {
   position: fixed;
   top: 0;
-  left: 265px; 
+  left: 260px; 
   right: 0;
-  background: #eeeeee;
+  background: #ffffff;
   padding: 20px 40px;
   z-index: 100;
 }
@@ -219,27 +245,22 @@ const goManage = () => {
   font-weight: 600;
 }
 
-/* WARNA */
-.gray {
-  background: #cfcfcf;
-}
-
-.green {
-  background: #cfe5b6;
-}
-
-.pink {
-  background: #efb1b1;
-}
-
 /* RESPONSIVE */
-@media (max-width: 900px) {
-  .stats {
-    flex-direction: column;
-  }
+@media(max-width:900px){
 
-  .sidebar {
-    width: 220px;
-  }
+.dashboard{
+flex-direction:column;
+}
+
+.sidebar{
+width:100%;
+}
+
+.topbar{
+flex-direction:column;
+align-items:flex-start;
+gap:20px;
+}
+
 }
 </style>

@@ -345,6 +345,8 @@ background:white;
 padding:10px 16px;
 border-radius:14px;
 box-shadow:0 4px 15px rgba(0,0,0,0.05);
+margin-right: 20px;
+margin-left: 20px;
 }
 
 .admin-avatar{
@@ -419,6 +421,9 @@ background:white;
 padding:25px;
 border-radius:25px;
 box-shadow:0 4px 20px rgba(0,0,0,0.05);
+margin-top: -30px;
+margin-left: 20px;
+margin-right: 20px;
 }
 
 .chart-header{
