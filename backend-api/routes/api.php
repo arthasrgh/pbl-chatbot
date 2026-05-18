@@ -8,7 +8,25 @@ use App\Http\Controllers\BotController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\UserController;
 
-Route::post('/login', [AuthController::class,'login']);
+Route::post('/login',
+    [AuthController::class,'login']
+);
+
+Route::get('/users',
+    [UserController::class,'index']
+);
+
+Route::post('/users',
+    [UserController::class,'store']
+);
+
+Route::put('/users/{id}',
+    [UserController::class,'update']
+);
+
+Route::delete('/users/{id}',
+    [UserController::class,'delete']
+);
 
 Route::get('/chats', [ChatController::class,'index']);
 Route::get('/chats/{nomor}', [ChatController::class,'show']);
