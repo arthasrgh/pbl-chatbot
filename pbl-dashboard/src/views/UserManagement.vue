@@ -3,7 +3,6 @@
 
     <!-- Sidebar -->
     <aside class="sidebar">
-
       <div class="logo-area">
         <img :src="logo" class="logo" />
         <div>
@@ -13,7 +12,6 @@
       </div>
 
       <div class="menu-section">
-
         <button class="menu" @click="goDashboard">
           <LayoutDashboard size="18" />
           Dashboard
@@ -28,14 +26,12 @@
           <Users size="18" />
           Manajemen User
         </button>
-
       </div>
 
       <button class="logout-btn" @click="logout">
         <LogOut size="18" />
         Logout
       </button>
-
     </aside>
 
     <!-- MAIN -->
@@ -43,385 +39,305 @@
 
       <!-- HEADER -->
       <div class="top-header">
-        <h1>Manajemen User</h1>
+        <h1>Manajemen Admin</h1>
       </div>
 
       <!-- CONTENT -->
       <div class="content-area">
-
         <div class="table-wrapper">
 
           <!-- ACTION -->
           <div class="table-top">
-
-            <button
-              class="add-btn"
-              @click="openModal"
-            >
-              + Tambah User
+            <button class="add-btn" @click="openModal">
+              + Tambah Admin
             </button>
 
             <input
               type="text"
-              placeholder="Cari user..."
+              placeholder="Cari username..."
               class="search-input"
               v-model="search"
             />
+          </div>
 
+          <!-- ERROR / SUCCESS MESSAGE -->
+          <div v-if="errorMessage" class="alert-error">
+            {{ errorMessage }}
+          </div>
+          <div v-if="successMessage" class="alert-success">
+            {{ successMessage }}
           </div>
 
           <!-- TABLE -->
           <table>
-
             <thead>
               <tr>
                 <th>No</th>
-                <th>Nama</th>
+                <th>Username</th>
                 <th>Email</th>
                 <th>Aksi</th>
               </tr>
             </thead>
 
             <tbody>
-
-              <tr
-                v-for="(user, index) in filteredUsers"
-                :key="index"
-              >
-                <td>{{ index + 1 }}</td>
-                <td>{{ user.name }}</td>
-                <td>{{ user.email }}</td>
-                
-
+              <tr v-for="admin in filteredAdmins" :key="admin.id">
+                <td>{{ filteredAdmins.indexOf(admin) + 1 }}</td>
+                <td>{{ admin.username }}</td>
+                <td>{{ admin.email || '-' }}</td>
                 <td>
-
-                  <button
-                    class="edit-btn"
-                    @click="editUser(index)"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    class="delete-btn"
-                    @click="deleteUser(index)"
-                  >
-                    Hapus
-                  </button>
-
+                  <button class="edit-btn" @click="editAdmin(admin)">Edit</button>
+                  <button class="delete-btn" @click="deleteAdmin(admin)">Hapus</button>
                 </td>
               </tr>
-
+              <tr v-if="filteredAdmins.length === 0">
+                <td colspan="4" style="text-align: center; padding: 20px;">
+                  Tidak ada data admin
+                </td>
+              </tr>
             </tbody>
-
           </table>
 
         </div>
-
-      </div>
-
-      <!-- MODAL -->
-      <div
-        class="modal-overlay"
-        v-if="showModal"
-      >
-
-        <div class="modal">
-
-          <h2>
-            {{ isEdit ? 'Edit User' : 'Tambah User' }}
-          </h2>
-
-          <!-- ERROR -->
-          <p
-            v-if="errorMessage"
-            class="error-text"
-          >
-            {{ errorMessage }}
-          </p>
-
-          <!-- INPUT -->
-          <input
-            type="text"
-            placeholder="Nama"
-            v-model="form.name"
-          />
-
-          <input
-            type="email"
-            placeholder="Email"
-            v-model="form.email"
-          />
-
-          
-
-          <!-- PASSWORD -->
-          <div class="password-box">
-
-            <input
-              :type="showPassword ? 'text' : 'password'"
-              placeholder="Password"
-              v-model="form.password"
-            />
-
-            <button
-  type="button"
-  class="show-btn"
-  @click="showPassword = !showPassword"
->
-  <i
-    :class="showPassword
-      ? 'fa-solid fa-eye-slash'
-      : 'fa-solid fa-eye'"
-  ></i>
-</button>
-
-          </div>
-
-          <!-- BUTTON -->
-          <div class="modal-action">
-
-            <button
-              class="save-btn"
-              @click="saveUser"
-            >
-              Simpan
-            </button>
-
-            <button
-              class="cancel-btn"
-              @click="closeModal"
-            >
-              Batal
-            </button>
-
-          </div>
-
-        </div>
-
       </div>
 
     </main>
+
+    <!-- MODAL OVERLAY (di luar main, agar tidak terpotong) -->
+    <div class="modal-overlay" v-if="showModal" @click.self="closeModal">
+      <div class="modal">
+        <h2>{{ isEdit ? 'Edit Admin' : 'Tambah Admin' }}</h2>
+
+        <!-- ERROR inside modal -->
+        <p v-if="errorMessage" class="error-text">
+          {{ errorMessage }}
+        </p>
+
+        <!-- FORM -->
+          <form @submit.prevent="saveAdmin">
+            <div class="form-group">
+              <label>Username</label>
+              <input
+                v-model="form.username"
+                type="text"
+                placeholder="Masukkan username"
+                required
+                :disabled="isSubmitting"
+              />
+          </div>
+
+          <div class="form-group">
+            <label>Email</label>
+            <input
+              v-model="form.email"
+              type="email"
+              placeholder="contoh@email.com"
+              :disabled="isSubmitting"
+            />
+          </div>
+
+
+          <div class="form-group">
+            <label>Password</label>
+            <div class="password-box">
+              <input
+                :type="showPassword ? 'text' : 'password'"
+                :placeholder="isEdit ? 'Kosongkan jika tidak ingin mengubah' : 'Minimal 8 karakter'"
+                v-model="form.password"
+                :required="!isEdit"
+                :disabled="isSubmitting"
+              />
+              <button type="button" class="show-btn" @click="showPassword = !showPassword" :disabled="isSubmitting">
+                <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
+              </button>
+            </div>
+            <small v-if="!isEdit">Minimal 8 karakter, huruf besar, angka, dan simbol</small>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" @click="closeModal" class="btn-secondary" :disabled="isSubmitting">
+              Batal
+            </button>
+            <button type="submit" class="btn-primary" :disabled="isSubmitting">
+              {{ isSubmitting ? 'Menyimpan...' : 'Simpan' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
 
   </div>
 </template>
 
 <script setup>
 import {
-  LayoutDashboard,
-  MessageCircle,
-  Users,
-  LogOut,
-  MessageSquareMore,
-  BarChart3,
-  Flame
+  LayoutDashboard, MessageCircle, Users, LogOut
 } from "lucide-vue-next"
 
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import Chart from "chart.js/auto"
 import api from "../services/api"
 import logo from "../assets/Logo_Boyo2.png"
 
 const router = useRouter()
-
-/* SEARCH */
 const search = ref('')
 
 /* MODAL */
 const showModal = ref(false)
 const isEdit = ref(false)
-const editIndex = ref(null)
+const editId = ref(null)
 const showPassword = ref(false)
-
-/* ERROR */
 const errorMessage = ref('')
+const successMessage = ref('')
+const isSubmitting = ref(false)  // ✅ Loading state
 
-/* DATA USER */
-const users = ref([
-  {
-    name: 'Admin',
-    email: 'admin@gmail.com',
-    password: 'Admin123!'
-  }
-
-  
-])
+/* DATA ADMIN dari API */
+const admins = ref([])
 
 /* FORM */
 const form = ref({
-  name: '',
-  email: '',
+  username: '',
+  email: '', 
   password: ''
 })
 
 /* FILTER SEARCH */
-const filteredUsers = computed(() => {
-  return users.value.filter(user =>
-    user.name.toLowerCase().includes(
-      search.value.toLowerCase()
-    )
+const filteredAdmins = computed(() => {
+  return admins.value.filter(admin =>
+    admin.username?.toLowerCase().includes(search.value.toLowerCase())
   )
 })
 
+/* FORMAT DATE */
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+  return new Date(dateString).toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+/* ✅ LOAD ADMIN DARI API */
+const loadAdmins = async () => {
+  try {
+    const res = await api.get('/admins')  // ✅ Pastikan route ini sesuai di api.php
+    admins.value = res.data.data || res.data || []
+  } catch (err) {
+    console.error('Gagal load admins:', err)
+    errorMessage.value = 'Gagal memuat data admin'
+  }
+}
+
 /* OPEN MODAL */
 const openModal = () => {
-
   showModal.value = true
   isEdit.value = false
+  editId.value = null
   showPassword.value = false
   errorMessage.value = ''
-
-  form.value = {
-    name: '',
-    email: '',
-    password: ''
-  }
+  successMessage.value = ''
+  form.value = { username: '', password: '' }
 }
 
 /* CLOSE MODAL */
 const closeModal = () => {
-
   showModal.value = false
   errorMessage.value = ''
+  successMessage.value = ''
   showPassword.value = false
+  isSubmitting.value = false
 }
 
-/* SAVE USER */
-const saveUser = () => {
-
+/* ✅ SAVE ADMIN KE API */
+const saveAdmin = async () => {
   errorMessage.value = ''
+  successMessage.value = ''
 
-  /* VALIDASI KOSONG */
-  if (
-    !form.value.name ||
-    !form.value.email ||
-    !form.value.password
-  ) {
+  // Validasi frontend
+  if (!form.value.username || (!isEdit.value && !form.value.password)) {
     errorMessage.value = 'Isi semua field'
     return
   }
 
-  /* VALIDASI FORMAT EMAIL */
-/* VALIDASI FORMAT EMAIL */
-const allowedDomains = [
-  'gmail.com',
-  'yahoo.com',
-  'outlook.com',
-  'hotmail.com',
-  'student.uns.ac.id'
-]
+  // Validasi password
+  if (form.value.password) {
+    const pass = form.value.password
+    if (pass.length < 8) {
+      errorMessage.value = 'Password minimal 8 karakter'
+      return
+    }
+    if (!/[A-Z]/.test(pass)) {
+      errorMessage.value = 'Password harus memiliki huruf kapital'
+      return
+    }
+    if (!/[0-9]/.test(pass)) {
+      errorMessage.value = 'Password harus memiliki angka'
+      return
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>_]/.test(pass)) {
+      errorMessage.value = 'Password harus memiliki karakter spesial'
+      return
+    }
+  }
 
-const emailPattern =
-/^[a-zA-Z0-9._%+-]+@([a-zA-Z0-9.-]+\.[A-Za-z]{2,})$/
+  isSubmitting.value = true
 
-if (!emailPattern.test(form.value.email)) {
-  errorMessage.value =
-    'Format email tidak valid.'
-  return
-}
-
-/* AMBIL DOMAIN EMAIL */
-const emailDomain =
-  form.value.email.split('@')[1]
-
-/* VALIDASI DOMAIN */
-if (!allowedDomains.includes(emailDomain)) {
-  errorMessage.value =
-    'Domain email tidak diperbolehkan'
-  return
-}
-  /* VALIDASI EMAIL DUPLIKAT */
-  const emailExists = users.value.some((user, index) => {
-
-    if (
-      isEdit.value &&
-      index === editIndex.value
-    ) {
-      return false
+  try {
+    if (isEdit.value) {
+      await api.put(`/admins/${editId.value}`, form.value)
+      successMessage.value = 'Admin berhasil diupdate'
+    } else {
+      await api.post('/admins', form.value)
+      successMessage.value = 'Admin berhasil ditambahkan'
     }
 
-    return user.email === form.value.email
-  })
-
-  if (emailExists) {
-    errorMessage.value =
-      'Email sudah digunakan'
-    return
-  }
-
-  const password = form.value.password
-
-  /* MINIMAL 8 */
-  if (password.length < 8) {
-    errorMessage.value =
-      'Password minimal 8 karakter'
-    return
-  }
-
-
-
-  /* HURUF KAPITAL */
-  if (!/[A-Z]/.test(password)) {
-    errorMessage.value =
-      'Password harus memiliki huruf kapital'
-    return
-  }
-
-  /* ANGKA */
-  if (!/[0-9]/.test(password)) {
-    errorMessage.value =
-      'Password harus memiliki angka'
-    return
-  }
-
-  /* SPESIAL KARAKTER */
-  if (
-    !/[!@#$%^&*(),.?":{}|<>_]/.test(password)
-  ) {
-    errorMessage.value =
-      'Password harus memiliki karakter spesial'
-    return
-  }
-
-  /* SAVE */
-  if (isEdit.value) {
-
-    users.value[editIndex.value] = {
-      ...form.value
+    await loadAdmins()
+    setTimeout(() => closeModal(), 1500)
+    
+  } catch (err) {
+    if (err.response?.data?.message) {
+      errorMessage.value = err.response.data.message
+    } else if (err.response?.data?.errors) {
+      const errors = err.response.data.errors
+      errorMessage.value = Object.values(errors).flat().join(', ')
+    } else {
+      errorMessage.value = 'Terjadi kesalahan pada server'
     }
-
-  } else {
-
-    users.value.push({
-      ...form.value
-    })
-
+    console.error('Error:', err)
+  } finally {
+    isSubmitting.value = false
   }
-
-  closeModal()
 }
 
-/* EDIT USER */
-const editUser = (index) => {
-
+const editAdmin = (admin) => {
   isEdit.value = true
   showModal.value = true
   showPassword.value = false
   errorMessage.value = ''
-
-  editIndex.value = index
-
+  successMessage.value = ''
+  
+  editId.value = admin.id
+  
   form.value = {
-    ...users.value[index]
+    username: admin.username || '',
+    email: admin.email || '',   // Tambahkan field email jika ada
+    password: ''  // Kosong = tidak diubah
   }
 }
 
-/* DELETE USER */
-const deleteUser = (index) => {
+const deleteAdmin = async (admin) => {
+  if (!confirm(`Hapus admin "${admin.username}"?`)) return
 
-  if (confirm('Hapus user ini?')) {
-    users.value.splice(index, 1)
+  try {
+    await api.delete(`/admins/${admin.id}`)
+    successMessage.value = 'Admin berhasil dihapus'
+    await loadAdmins()
+    setTimeout(() => { successMessage.value = '' }, 2000)
+  } catch (err) {
+    console.error('Gagal hapus admin:', err)
+    errorMessage.value = err.response?.data?.message || 'Gagal menghapus admin'
   }
 }
 
@@ -431,13 +347,13 @@ const logout = () => {
   router.push("/")
 }
 
-const goDashboard = () => {
-  router.push('/dashboard')
-}
+const goDashboard = () => router.push('/dashboard')
+const goRiwayat = () => router.push('/history')
 
-const goRiwayat = () => {
-  router.push('/history')
-}
+/* ✅ Load data saat component mounted */
+onMounted(() => {
+  loadAdmins()
+})
 </script>
 
 <style scoped>
@@ -454,79 +370,79 @@ const goRiwayat = () => {
 }
 
 /* SIDEBAR */
-.sidebar{
-width:260px;
-background:#111827;
-padding:25px 20px;
-display:flex;
-flex-direction:column;
-justify-content:space-between;
+.sidebar {
+  width: 260px;
+  background: #111827;
+  padding: 25px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-.logo-area{
-display:flex;
-align-items:center;
-gap:14px;
-margin-bottom:40px;
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 40px;
 }
 
-.logo{
-width:50px;
-height:50px;
+.logo {
+  width: 50px;
+  height: 50px;
 }
 
-.logo-area h2{
-color:white;
-font-size:18px;
+.logo-area h2 {
+  color: white;
+  font-size: 18px;
 }
 
-.logo-area p{
-color:#9ca3af;
-font-size:13px;
+.logo-area p {
+  color: #9ca3af;
+  font-size: 13px;
 }
 
-.menu-section{
-display:flex;
-flex-direction:column;
-gap:12px;
+.menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.menu{
-border:none;
-padding:14px;
-border-radius:14px;
-display:flex;
-align-items:center;
-gap:12px;
-font-size:15px;
-font-weight:600;
-cursor:pointer;
-background:transparent;
-color:#d1d5db;
-transition:0.3s;
+.menu {
+  border: none;
+  padding: 14px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: #d1d5db;
+  transition: 0.3s;
 }
 
-.menu:hover{
-background:#1f2937;
+.menu:hover {
+  background: #1f2937;
 }
 
-.active{
-background:#ef4444;
-color:white;
+.active {
+  background: #ef4444;
+  color: white;
 }
 
-.logout-btn{
-border:none;
-padding:14px;
-border-radius:14px;
-background:#ef4444;
-color:white;
-font-weight:bold;
-display:flex;
-align-items:center;
-justify-content:center;
-gap:10px;
-cursor:pointer;
+.logout-btn {
+  border: none;
+  padding: 14px;
+  border-radius: 14px;
+  background: #ef4444;
+  color: white;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
 }
 
 /* MAIN */
@@ -571,6 +487,8 @@ cursor:pointer;
   display: flex;
   justify-content: space-between;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .add-btn {
@@ -581,6 +499,11 @@ cursor:pointer;
   border-radius: 10px;
   font-weight: bold;
   cursor: pointer;
+}
+
+.add-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .search-input {
@@ -610,9 +533,14 @@ tbody tr {
   border-bottom: 1px solid #ccc;
 }
 
+tbody tr:hover {
+  background: #e5e7eb;
+}
+
 /* BUTTON */
 .edit-btn {
-  background: #cfe5b6;
+  background: #3b82f6;
+  color: white;
   border: none;
   padding: 8px 12px;
   border-radius: 8px;
@@ -620,44 +548,101 @@ tbody tr {
   cursor: pointer;
 }
 
+.edit-btn:hover {
+  background: #2563eb;
+}
+
 .delete-btn {
-  background: #efb1b1;
+  background: #ef4444;
+  color: white;
   border: none;
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
 }
 
+.delete-btn:hover {
+  background: #dc2626;
+}
+
+/* ALERT */
+.alert-error,
+.alert-success,
+.error-text {
+  padding: 10px 15px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+.alert-error,
+.error-text {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.alert-success {
+  background: #d1fae5;
+  color: #059669;
+}
+
 /* MODAL */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1000;
+  padding: 20px;
 }
 
 .modal {
   background: white;
-  width: 400px;
-  padding: 25px;
+  width: 100%;
+  max-width: 450px;
+  padding: 30px;
   border-radius: 20px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .modal h2 {
   text-align: center;
+  margin-bottom: 10px;
 }
 
-.modal input,
-.modal select {
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.form-group input {
   width: 100%;
   padding: 12px;
   border-radius: 10px;
   border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+.form-group input:disabled {
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.form-group small {
+  color: #6b7280;
+  font-size: 12px;
 }
 
 /* PASSWORD */
@@ -666,64 +651,84 @@ tbody tr {
 }
 
 .password-box input {
-  padding-right: 60px;
+  padding-right: 50px;
 }
 
 .show-btn {
   position: absolute;
-  right: 10px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 16px;
+  color: #6b7280;
 }
 
-/* ERROR */
-.error-text {
-  background: #efb1b1;
-  color: #7a0000;
-  padding: 10px;
-  border-radius: 10px;
-  font-size: 14px;
-  text-align: center;
+.show-btn:hover {
+  color: #374151;
+}
+
+.show-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ACTION */
-.modal-action {
+.modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
+  margin-top: 10px;
 }
 
-.save-btn {
+.btn-primary {
   background: #ef0033;
   color: white;
   border: none;
-  padding: 10px 18px;
+  padding: 10px 24px;
   border-radius: 10px;
   cursor: pointer;
+  font-weight: 600;
 }
 
-.cancel-btn {
-  background: #ccc;
+.btn-primary:hover:not(:disabled) {
+  background: #c20029;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #9ca3af;
+  color: white;
   border: none;
-  padding: 10px 18px;
+  padding: 10px 24px;
   border-radius: 10px;
   cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #6b7280;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* RESPONSIVE */
 @media (max-width: 900px) {
-
   .sidebar {
     width: 220px;
   }
 
   .table-top {
     flex-direction: column;
-    gap: 15px;
   }
 
   .search-input {
@@ -732,6 +737,10 @@ tbody tr {
 
   table {
     font-size: 14px;
+  }
+
+  th, td {
+    padding: 12px 8px;
   }
 }
 </style>
