@@ -28,6 +28,16 @@ Route::delete('/users/{id}',
     [UserController::class,'delete']
 );
 
+Route::post(
+    '/forgot-password',
+    [AuthController::class,'forgotPassword']
+);
+
+Route::post(
+    '/reset-password',
+    [AuthController::class,'resetPassword']
+);
+
 Route::get('/chats', [ChatController::class,'index']);
 Route::get('/chats/{nomor}', [ChatController::class,'show']);
 

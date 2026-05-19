@@ -53,18 +53,30 @@ public function store(Request $req)
 public function update(Request $req, $id)
 {
     $admin = DB::table('admins')->where('id', $id)->first();
-    
+
     if (!$admin) {
         return response()->json([
-            'success' => false,
-            'message' => 'Admin tidak ditemukan'
-        ], 404);
+            'success'=>false,
+            'message'=>'Admin tidak ditemukan'
+        ],404);
     }
 
     $req->validate([
-        'username' => ['required', 'string', 'max:255', 'unique:admins,username,' . $id],
-        'email'    => ['nullable', 'email', 'max:255', 'unique:admins,email,' . $id],
-        'password' => [
+        'username'=>[
+            'required',
+            'string',
+            'max:255',
+            'unique:admins,username,'.$id
+        ],
+
+        'email'=>[
+            'nullable',
+            'email',
+            'max:255',
+            'unique:admins,email,'.$id
+        ],
+
+        'password'=>[
             'nullable',
             'min:8',
             'regex:/[A-Z]/',
@@ -74,23 +86,24 @@ public function update(Request $req, $id)
     ]);
 
     $data = [
-        'username' => $req->username,
-        'email'    => $req->email,
-        'updated_at' => now()
+        'username'=>$req->username,
+        'email'=>$req->email,
+        'updated_at'=>now()
     ];
 
-    if ($req->password) {
+    if ($req->filled('password')) {
         $data['password'] = Hash::make($req->password);
     }
 
-    DB::table('admins')->where('id', $id)->update($data);
+    DB::table('admins')
+        ->where('id',$id)
+        ->update($data);
 
     return response()->json([
-        'success' => true,
-        'message' => 'Admin berhasil diupdate'
+        'success'=>true,
+        'message'=>'Admin berhasil diupdate'
     ]);
 }
-
     public function delete($id)
     {
         $admin = DB::table('admins')->where('id', $id)->first();
