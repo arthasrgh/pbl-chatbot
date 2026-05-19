@@ -5,6 +5,7 @@ import History from '../views/History.vue'
 import Dashboard from '../views/Dashboard.vue'
 import UserManagement from '../views/UserManagement.vue'
 import ForgotPassword from '../views/ForgotPassword.vue'
+import ResetPassword from '../views/ResetPassword.vue'
 
 
 const routes = [
@@ -13,7 +14,8 @@ const routes = [
   { path: '/history', component: History },
   { path: '/dashboard', component: Dashboard },
   { path: '/manajemen', component: UserManagement},
-  { path: '/forgot-password', component: ForgotPassword }
+  { path: '/forgot-password', component: ForgotPassword },
+  {path:'/reset-password', component:ResetPassword}
 ]
 
 const router = createRouter({

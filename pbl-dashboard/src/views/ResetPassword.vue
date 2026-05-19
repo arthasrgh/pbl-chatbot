@@ -1,82 +1,107 @@
 <script setup>
-import { ref } from "vue"
-import { useRouter } from "vue-router"
-import api from "../services/api"
-import logo from "../assets/Logo_Boyo2.png"
+import { ref } from 'vue'
+import { useRoute,useRouter } from 'vue-router'
+import api from '../services/api'
+import logo from '../assets/Logo_Boyo2.png'
 
+const route = useRoute()
 const router = useRouter()
 
-const email = ref("")
-const password = ref("")
+const token = route.query.token
+
+const password = ref('')
+const confirmPassword = ref('')
+
 const showPassword = ref(false)
-const errorMessage = ref("")
+const showConfirmPassword = ref(false)
 
-const login = async () => {
+const errorMessage = ref('')
+const successMessage = ref('')
 
-  errorMessage.value = ""
+const resetPassword = async () => {
 
-  if (!email.value || !password.value) {
+  errorMessage.value=''
+  successMessage.value=''
+
+  if(!password.value || !confirmPassword.value){
+
     errorMessage.value =
-      "Email dan password wajib diisi"
+      'Semua field wajib diisi'
+
     return
   }
 
-  try {
+  if(password.value !== confirmPassword.value){
 
-    const res = await api.post("/login", {
+    errorMessage.value =
+      'Konfirmasi password tidak cocok'
 
-      email: email.value,
-      password: password.value
+    return
+  }
 
-    })
+  if(password.value.length < 8){
 
-    if (res.data.success) {
+    errorMessage.value =
+      'Password minimal 8 karakter'
 
-      localStorage.setItem(
-        "isLogin",
-        JSON.stringify(true)
-      )
+    return
+  }
 
-      router.push("/dashboard")
+  try{
 
-    }
+    const res =
+      await api.post('/reset-password',{
 
-  } catch (err) {
+        token:token,
+        password:password.value
 
-    if (err.response) {
+      })
 
-      errorMessage.value =
-        err.response.data.message
+    successMessage.value =
+      res.data.message
 
-    } else {
+    setTimeout(()=>{
 
-      errorMessage.value =
-        "Server backend tidak terhubung"
+      router.push('/login')
 
-    }
+    },2000)
 
-    console.error(err)
+  }catch(err){
+
+    errorMessage.value =
+      err.response?.data?.message
+      || 'Reset password gagal'
   }
 }
 
-const goHome = () => {
-  router.push("/")
+const goLogin=()=>{
+
+  router.push('/login')
 }
 </script>
 
 <template>
+
 <div class="page">
 
 <header class="header">
 
 <div class="header-left">
-<img :src="logo" class="header-logo">
-<span>Bakesbangpol Boyolali</span>
+
+<img
+:src="logo"
+class="header-logo"
+/>
+
+<span>
+Bakesbangpol Boyolali
+</span>
+
 </div>
 
 <button
 class="back-btn"
-@click="goHome"
+@click="goLogin"
 >
 Back
 </button>
@@ -85,38 +110,49 @@ Back
 
 <main class="main-content">
 
-<div class="login-card">
+<div class="reset-card">
 
-<h2>Login</h2>
+<h2>
+Reset Password
+</h2>
+
+<p class="desc">
+
+Masukkan password baru akun anda.
+
+</p>
+
+<p
+v-if="successMessage"
+class="success-text"
+>
+
+{{successMessage}}
+
+</p>
 
 <p
 v-if="errorMessage"
 class="error-text"
 >
-{{ errorMessage }}
+
+{{errorMessage}}
+
 </p>
 
-<label>Email</label>
-
-<input
-v-model="email"
-type="email"
-placeholder="Masukkan email"
-/>
-
-<label>Password</label>
+<label>Password Baru</label>
 
 <div class="password-box">
 
 <input
 v-model="password"
 :type="showPassword ? 'text':'password'"
-placeholder="Masukkan password"
+placeholder="Masukkan password baru"
 />
 
 <button
-type="button"
 class="show-btn"
+type="button"
 @click="showPassword=!showPassword"
 >
 
@@ -132,18 +168,53 @@ showPassword
 
 </div>
 
+<label>Konfirmasi Password</label>
+
+<div class="password-box">
+
+<input
+v-model="confirmPassword"
+:type="showConfirmPassword ? 'text':'password'"
+placeholder="Masukkan ulang password"
+/>
+
 <button
-class="login-btn"
-@click="login"
+class="show-btn"
+type="button"
+@click="
+showConfirmPassword=
+!showConfirmPassword
+"
 >
-Login
+
+<i
+:class="
+showConfirmPassword
+? 'fa-solid fa-eye-slash'
+: 'fa-solid fa-eye'
+"
+></i>
+
+</button>
+
+</div>
+
+<button
+class="reset-btn"
+@click="resetPassword"
+>
+
+Reset Password
+
 </button>
 
 <p
-class="forgot"
-@click="router.push('/forgot-password')"
+class="login-link"
+@click="goLogin"
 >
-Lupa Password? Klik di sini
+
+Kembali ke Login
+
 </p>
 
 </div>
@@ -164,27 +235,39 @@ class="footer-logo"
 <div class="footer-text">
 
 <h3>
-Badan Kesatuan Bangsa dan Politik
+
+Badan Kesatuan Bangsa
+dan Politik
+
 </h3>
 
 <p>
+
 Kabupaten Boyolali
+
 </p>
 
 <div class="contact-item">
+
 📞 (0276) 321087
+
 </div>
 
 <div class="contact-item">
+
 ✉️ bakesbangpol@boyolali.go.id
+
 </div>
 
 </div>
+
 </div>
 
 <div class="footer-bottom">
+
 Copyright@2026 Boyolali.
 Developed by System Hub
+
 </div>
 
 </div>
@@ -192,9 +275,11 @@ Developed by System Hub
 </footer>
 
 </div>
+
 </template>
 
-<style>
+<style scoped>
+
 *{
 margin:0;
 padding:0;
@@ -208,8 +293,6 @@ display:flex;
 flex-direction:column;
 background:#8d96a6;
 }
-
-/* HEADER */
 
 .header{
 height:55px;
@@ -243,8 +326,6 @@ font-weight:bold;
 cursor:pointer;
 }
 
-/* MAIN */
-
 .main-content{
 flex:1;
 display:flex;
@@ -253,7 +334,7 @@ align-items:center;
 padding:50px 20px;
 }
 
-.login-card{
+.reset-card{
 width:420px;
 background:#f3163a;
 border-radius:28px;
@@ -261,27 +342,33 @@ padding:35px;
 color:white;
 }
 
-.login-card h2{
+.reset-card h2{
 text-align:center;
-margin-bottom:25px;
+margin-bottom:10px;
 }
 
-.login-card label{
+.desc{
+text-align:center;
+margin-bottom:20px;
+font-size:14px;
+}
+
+.reset-card label{
 display:block;
 margin-bottom:8px;
 margin-top:14px;
 }
 
-.login-card input{
+.password-box{
+position:relative;
+}
+
+.reset-card input{
 width:100%;
 padding:14px 18px;
 border:none;
 border-radius:30px;
 outline:none;
-}
-
-.password-box{
-position:relative;
 }
 
 .password-box input{
@@ -299,7 +386,7 @@ cursor:pointer;
 font-size:18px;
 }
 
-.login-btn{
+.reset-btn{
 margin-top:25px;
 width:100%;
 border:none;
@@ -311,26 +398,30 @@ border-radius:30px;
 cursor:pointer;
 }
 
-.forgot{
+.login-link{
 margin-top:18px;
 text-align:center;
 font-size:14px;
 cursor:pointer;
 }
 
-/* ERROR */
-
 .error-text{
-background:white;
-color:#d40028;
-padding:12px;
+background:#ffd4d4;
+color:#a40000;
+padding:10px;
 border-radius:12px;
 margin-bottom:15px;
 text-align:center;
-font-weight:bold;
 }
 
-/* FOOTER */
+.success-text{
+background:#d4ffd9;
+color:#006b1b;
+padding:10px;
+border-radius:12px;
+margin-bottom:15px;
+text-align:center;
+}
 
 .footer{
 background:#f3f3f3;
@@ -363,11 +454,9 @@ margin-top:25px;
 font-size:13px;
 }
 
-/* RESPONSIVE */
-
 @media(max-width:600px){
 
-.login-card{
+.reset-card{
 width:100%;
 }
 
@@ -380,4 +469,5 @@ padding:25px;
 }
 
 }
+
 </style>
