@@ -9,105 +9,104 @@ use Illuminate\Support\Facades\Hash;
 class UserController extends Controller
 {
 
-    public function index()
-    {
-        return response()->json(
-            DB::table('users')->get()
-        );
-    }
+public function index()
+{
+    $admins = DB::table('admins')
+        ->select('id', 'username', 'email', 'created_at')
+        ->get();
+        
+    return response()->json([
+        'success' => true,
+        'data' => $admins
+    ]);
+}
 
-    public function store(Request $req)
-    {
+public function store(Request $req)
+{
+    $req->validate([
+        'username' => ['required', 'string', 'max:255', 'unique:admins,username'],
+        'email'    => ['nullable', 'email', 'max:255', 'unique:admins,email'],
+        'password' => [
+            'required',
+            'min:8',
+            'regex:/[A-Z]/',
+            'regex:/[0-9]/',
+            'regex:/[!@#$%^&*(),.?":{}|<>_]/'
+        ]
+    ]);
 
-        $req->validate([
+    $id = DB::table('admins')->insertGetId([
+        'username' => $req->username,
+        'email'    => $req->email,
+        'password' => Hash::make($req->password),
+        'created_at' => now(),
+        'updated_at' => now()
+    ]);
 
-            'name'=>'required',
+    return response()->json([
+        'success' => true,
+        'message' => 'Admin berhasil ditambahkan',
+        'data' => ['id' => $id, 'username' => $req->username, 'email' => $req->email]
+    ], 201);
+}
 
-            'email'=>[
-                'required',
-                'email',
-                'unique:users,email'
-            ],
-
-            'password'=>[
-                'required',
-                'min:8',
-                'regex:/[A-Z]/',
-                'regex:/[0-9]/',
-                'regex:/[!@#$%^&*(),.?":{}|<>_]/'
-            ]
-        ]);
-
-        DB::table('users')->insert([
-
-            'name'=>$req->name,
-
-            'email'=>$req->email,
-
-            'password'=>Hash::make(
-                $req->password
-            ),
-
-            'created_at'=>now(),
-            'updated_at'=>now()
-
-        ]);
-
+public function update(Request $req, $id)
+{
+    $admin = DB::table('admins')->where('id', $id)->first();
+    
+    if (!$admin) {
         return response()->json([
-            'success'=>true,
-            'message'=>'User berhasil dibuat'
-        ]);
+            'success' => false,
+            'message' => 'Admin tidak ditemukan'
+        ], 404);
     }
 
-    public function update(Request $req,$id)
-    {
+    $req->validate([
+        'username' => ['required', 'string', 'max:255', 'unique:admins,username,' . $id],
+        'email'    => ['nullable', 'email', 'max:255', 'unique:admins,email,' . $id],
+        'password' => [
+            'nullable',
+            'min:8',
+            'regex:/[A-Z]/',
+            'regex:/[0-9]/',
+            'regex:/[!@#$%^&*(),.?":{}|<>_]/'
+        ]
+    ]);
 
-        $req->validate([
+    $data = [
+        'username' => $req->username,
+        'email'    => $req->email,
+        'updated_at' => now()
+    ];
 
-            'name'=>'required',
-
-            'email'=>[
-                'required',
-                'email',
-                'unique:users,email,'.$id
-            ]
-        ]);
-
-        $data=[
-
-            'name'=>$req->name,
-
-            'email'=>$req->email,
-
-            'updated_at'=>now()
-        ];
-
-        if($req->password){
-
-            $data['password']=Hash::make(
-                $req->password
-            );
-        }
-
-        DB::table('users')
-            ->where('id',$id)
-            ->update($data);
-
-        return response()->json([
-            'success'=>true,
-            'message'=>'User berhasil diupdate'
-        ]);
+    if ($req->password) {
+        $data['password'] = Hash::make($req->password);
     }
+
+    DB::table('admins')->where('id', $id)->update($data);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Admin berhasil diupdate'
+    ]);
+}
 
     public function delete($id)
     {
+        $admin = DB::table('admins')->where('id', $id)->first();
+        
+        if (!$admin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Admin tidak ditemukan'
+            ], 404);
+        }
 
-        DB::table('users')
-            ->where('id',$id)
-            ->delete();
+        DB::table('admins')->where('id', $id)->delete();
 
         return response()->json([
-            'success'=>true
+            'success' => true,
+            'message' => 'Admin berhasil dihapus'
         ]);
     }
 }

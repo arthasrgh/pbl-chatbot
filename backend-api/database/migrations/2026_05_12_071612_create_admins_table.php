@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('username');
             $table->string('password');
             $table->timestamps();
+            $table->string('email')->unique()->nullable()->after('username');
         });
     }
 
@@ -24,6 +25,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('admins');
+        Schema::table('admins', function (Blueprint $table) {
+            $table->dropColumn('email');
+        });
     }
 };
