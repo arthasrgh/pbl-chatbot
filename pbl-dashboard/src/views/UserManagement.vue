@@ -238,7 +238,7 @@ const openModal = () => {
   showPassword.value = false
   errorMessage.value = ''
   successMessage.value = ''
-  form.value = { username: '', password: '' }
+  form.value = { username: '', email: '', password: '' }
 }
 
 /* CLOSE MODAL */

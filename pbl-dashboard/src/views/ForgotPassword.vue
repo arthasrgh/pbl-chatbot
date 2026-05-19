@@ -122,6 +122,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import logo from '../assets/Logo_Boyo2.png'
+import api from "../services/api"
 
 const router = useRouter()
 
@@ -129,35 +130,31 @@ const email = ref('')
 const errorMessage = ref('')
 const successMessage = ref('')
 
-const sendReset = () => {
+const sendReset = async () => {
 
-  errorMessage.value = ''
-  successMessage.value = ''
+  errorMessage.value=''
+  successMessage.value=''
 
-  /* VALIDASI KOSONG */
-  if (!email.value) {
-    errorMessage.value =
-      'Email wajib diisi'
-    return
+  try{
+
+      const res =
+        await api.post(
+            '/forgot-password',
+            {
+                email:email.value
+            }
+        )
+
+      successMessage.value =
+          res.data.message
+
   }
+  catch(err){
 
-  /* VALIDASI EMAIL */
-  const emailPattern =
-    /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}$/
-
-  if (!emailPattern.test(email.value)) {
-    errorMessage.value =
-      'Format email tidak valid'
-    return
+      errorMessage.value =
+          err.response?.data?.message
+          || 'Gagal kirim email'
   }
-
-  /* SUCCESS */
-  successMessage.value =
-    'Link reset password berhasil dikirim ke email'
-}
-
-const goLogin = () => {
-  router.push('/login')
 }
 </script>
 
