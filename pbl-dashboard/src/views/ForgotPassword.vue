@@ -156,6 +156,10 @@ const sendReset = async () => {
           || 'Gagal kirim email'
   }
 }
+
+const goLogin = () => {
+  router.push("/login")
+}
 </script>
 
 <style scoped>

@@ -22,7 +22,7 @@
     <!-- CONTENT -->
     <section class="content">
       <div class="pahlawan">
-      <h3>Bagi Operator, silakan Login.</h3>
+      <h3>Bagi Operator/Admin, silakan Login.</h3>
       </div>
     </section>
   

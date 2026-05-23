@@ -24,7 +24,7 @@
 
         <button class="menu active">
           <Users size="18" />
-          Manajemen User
+          Manajemen Admin
         </button>
       </div>
 
@@ -188,7 +188,7 @@ const editId = ref(null)
 const showPassword = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
-const isSubmitting = ref(false)  // ✅ Loading state
+const isSubmitting = ref(false)
 
 /* DATA ADMIN dari API */
 const admins = ref([])
@@ -222,7 +222,7 @@ const formatDate = (dateString) => {
 /* ✅ LOAD ADMIN DARI API */
 const loadAdmins = async () => {
   try {
-    const res = await api.get('/admins')  // ✅ Pastikan route ini sesuai di api.php
+    const res = await api.get('/admins')
     admins.value = res.data.data || res.data || []
   } catch (err) {
     console.error('Gagal load admins:', err)
