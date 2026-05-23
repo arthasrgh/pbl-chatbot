@@ -22,7 +22,7 @@ Fitur utama:
 
 project-pbl/
 │
-├── frontend
+├── pbl-dashboard
 ├── backend-api
 └── bangkesbot
 
@@ -33,4 +33,4 @@ project-pbl/
 ## Masuk Folder
 
 ```bash
-cd frontend
+cd pbl-dashboard
