@@ -8,16 +8,17 @@ class ChatController extends Controller
 {
     public function index()
     {
-        return DB::table('sessions')
-            ->orderBy('updated_at','desc')
+        return DB::table('messages')
+            ->select('nomor')
+            ->distinct()
             ->get();
     }
 
     public function show($nomor)
     {
         return DB::table('messages')
-            ->where('nomor',$nomor)
-            ->orderBy('created_at','asc')
+            ->where('nomor', $nomor)
+            ->orderBy('created_at', 'asc')
             ->get();
     }
 }
