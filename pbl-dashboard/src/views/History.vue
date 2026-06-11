@@ -28,7 +28,7 @@
 
         <button class="menu" @click="goManage">
           <Users size="18" />
-          Manajemen User
+          Manajemen Admin
         </button>
 
       </div>

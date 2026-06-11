@@ -5,16 +5,16 @@ const qrcode = require("qrcode-terminal")
 const mysql = require("mysql2/promise")
 const Groq = require("groq-sdk")
 
-/* ======================
-   GROQ AI
-====================== */
+/* ==========================
+   GROQ
+========================== */
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
 })
 
-/* ======================
+/* ==========================
    DATABASE
-====================== */
+========================== */
 const db = mysql.createPool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT || 3306,
@@ -30,13 +30,13 @@ async function testDB() {
     await db.query("SELECT 1")
     console.log("✅ Database terhubung")
   } catch (err) {
-    console.error("❌ DB ERROR:", err)
+    console.log("❌ DB ERROR:", err.message)
   }
 }
 
-/* ======================
+/* ==========================
    WHATSAPP
-====================== */
+========================== */
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
@@ -57,53 +57,14 @@ client.on("ready", () => {
   console.log("✅ Bot siap")
 })
 
-client.on("disconnected", reason => {
-  console.log("⚠️ Disconnect:", reason)
+client.on("disconnected", () => {
+  console.log("⚠ reconnect...")
   client.initialize()
 })
 
-/* ======================
-   AI
-====================== */
-async function askAI(text) {
-  try {
-    const response = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `
-Kamu adalah customer service resmi Bangkesbangpol Boyolali.
-
-Aturan:
-- jawab singkat
-- profesional
-- sopan
-- bantu user
-- arahkan ke admin jika perlu
-`
-        },
-        {
-          role: "user",
-          content: text
-        }
-      ],
-      model: "llama-3.3-70b-versatile",
-      temperature: 0.5,
-      max_tokens: 300
-    })
-
-    return response.choices?.[0]?.message?.content ||
-      "Maaf, saya belum bisa menjawab."
-
-  } catch (err) {
-    console.error("AI ERROR:", err.message)
-    return "Maaf, server AI sedang sibuk."
-  }
-}
-
-/* ======================
+/* ==========================
    MENU
-====================== */
+========================== */
 function getMenu() {
   return `
 *Selamat Datang di Bangkesbangpol Boyolali*
@@ -119,37 +80,103 @@ Ketik angka menu.
 `
 }
 
-/* ======================
+/* ==========================
+   SAFE REPLY
+========================== */
+async function safeReply(msg, text) {
+  try {
+    await msg.reply(text)
+  } catch {
+    try {
+      await client.sendMessage(msg.from, text)
+    } catch {
+      console.log("Reply gagal")
+    }
+  }
+}
+
+/* ==========================
+   AI
+========================== */
+async function askAI(text) {
+  try {
+
+    const response =
+      await groq.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content: `
+Kamu adalah asisten resmi Bangkesbangpol Boyolali.
+
+Jawablah berdasarkan pengetahuan dunia nyata yang valid.
+
+Aturan:
+- jawab natural
+- singkat tapi jelas
+- gunakan fakta nyata
+- jangan terlalu sering menolak
+- jika pertanyaan umum, jawab langsung
+- gunakan bahasa Indonesia sopan
+- jangan kaku seperti robot
+- jika benar-benar tidak tahu jawab:
+"Maaf, saya belum menemukan informasi pasti."
+`
+          },
+          {
+            role: "user",
+            content: text
+          }
+        ],
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.4,
+        max_tokens: 500
+      })
+
+    return response.choices[0].message.content
+
+  } catch (err) {
+    console.log("AI ERROR:", err.message)
+    return "Maaf, sistem sedang sibuk."
+  }
+}
+
+/* ==========================
    MESSAGE HANDLER
-====================== */
+========================== */
 client.on("message", async msg => {
   try {
-    if (msg.from.includes("@g.us")) return
+
     if (!msg.body?.trim()) return
+    if (msg.from.includes("@g.us")) return
+    if (msg.from === "status@broadcast") return
 
     const nomor = msg.from
     const text = msg.body.trim()
 
     console.log("📩 Pesan:", text)
 
-    /* cek user */
     const [cek] = await db.execute(
-      "SELECT * FROM users WHERE nomor = ?",
+      "SELECT nomor FROM users WHERE nomor=?",
       [nomor]
     )
 
-    /* USER BARU = MENU */
-    if (cek.length === 0) {
+    /* chat pertama / menu */
+    if (
+      cek.length === 0 ||
+      ["halo", "hai", "menu", "start"]
+        .includes(text.toLowerCase())
+    ) {
 
       await db.execute(`
-        INSERT INTO users
+        INSERT IGNORE INTO users
         (nomor, created_at, updated_at)
         VALUES (?, NOW(), NOW())
       `, [nomor])
 
       const menu = getMenu()
 
-      await msg.reply(menu)
+      await safeReply(msg, menu)
 
       await db.execute(`
         INSERT INTO messages
@@ -169,21 +196,21 @@ client.on("message", async msg => {
 
     let reply = ""
 
-    switch (text) {
+    switch(text){
 
       case "1":
         reply =
-          "Informasi pendaftaran tersedia di website resmi Pemerintah Boyolali."
+          "Pendaftaran dapat dilakukan melalui website resmi Pemerintah Kabupaten Boyolali."
         break
 
       case "2":
         reply =
-          "Syarat mitra: KTP, surat permohonan, proposal, dan dokumen pendukung."
+          "Persyaratan umum meliputi KTP, proposal organisasi, dan surat permohonan resmi."
         break
 
       case "3":
         reply =
-          "Hubungi admin:\n0878-2501-9307"
+          "Admin resmi Bangkesbangpol Boyolali: 0878-2501-9307"
         break
 
       case "4":
@@ -195,9 +222,9 @@ client.on("message", async msg => {
         reply = await askAI(text)
     }
 
-    await msg.reply(reply)
+    await safeReply(msg, reply)
 
-    /* simpan balasan */
+    /* simpan balasan bot */
     await db.execute(`
       INSERT INTO messages
       (nomor, pesan, sender, created_at, updated_at)
@@ -205,16 +232,12 @@ client.on("message", async msg => {
     `, [nomor, reply])
 
   } catch (err) {
-    console.error("========== BOT ERROR ==========")
-    console.error(err)
-    console.error("Message:", err.message)
-    console.error("Code:", err.code)
-    console.error("===============================")
+    console.log("BOT ERROR:", err.message)
   }
 })
 
-/* ======================
+/* ==========================
    START
-====================== */
+========================== */
 testDB()
 client.initialize()
