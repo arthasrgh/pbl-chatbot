@@ -61,9 +61,9 @@
 
       <div
         v-for="chat in chats"
-        :key="chat.id"
+        :key="chat.nomor"
         class="chat-user"
-        :class="{ 'active-chat': selectedChat?.id === chat.id }"
+        :class="{ 'active-chat': selectedChat.nomor === chat.nomor }"
         @click="openChat(chat)"
       >
 
@@ -188,10 +188,14 @@ const getChats = async () => {
 
     chats.value = response.data
 
-    if (chats.value.length > 0) {
+    console.log("CHAT LIST:", chats.value)
 
+    // hanya saat pertama kali load
+    if (
+      !selectedChat.value.nomor &&
+      chats.value.length > 0
+    ) {
       openChat(chats.value[0])
-
     }
 
   } catch (error) {
@@ -211,23 +215,18 @@ const selectedChat = ref({
 
 const openChat = async (chat) => {
 
-  try {
+  console.log("Buka chat:", chat.nomor)
 
-    const response = await api.get(
-      `/chats/${chat.nomor}`
-    )
+  const response = await api.get(
+    `/chats/${chat.nomor}`
+  )
 
-    selectedChat.value = {
-      nomor: chat.nomor,
-      messages: response.data
-    }
+  console.log(response.data)
 
-  } catch (error) {
-
-    console.log(error)
-
+  selectedChat.value = {
+    nomor: chat.nomor,
+    messages: response.data
   }
-
 }
 
 const formatTime = (time) => {
@@ -241,17 +240,21 @@ onMounted(() => {
 
   getChats()
 
-  setInterval(() => {
+  setInterval(async () => {
 
-    getChats()
+  await getChats()
 
-    if(selectedChat.value.nomor){
+  if (selectedChat.value.nomor) {
 
-      openChat(selectedChat.value)
+    const response = await api.get(
+      `/chats/${selectedChat.value.nomor}`
+    )
 
-    }
+    selectedChat.value.messages =
+      response.data
+  }
 
-  }, 3000)
+}, 3000)
 
 })
 </script>

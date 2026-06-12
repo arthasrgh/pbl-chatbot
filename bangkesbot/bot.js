@@ -151,8 +151,11 @@ client.on("message", async msg => {
     if (msg.from.includes("@g.us")) return
     if (msg.from === "status@broadcast") return
 
-    const nomor = msg.from
-    const text = msg.body.trim()
+    const nomor = msg.from.replace("@c.us", "")
+const text = msg.body.trim()
+
+console.log("Nomor:", nomor)
+console.log("Pesan:", text)
 
     console.log("📩 Pesan:", text)
 
@@ -162,11 +165,15 @@ client.on("message", async msg => {
     )
 
     /* chat pertama / menu */
-    if (
-      cek.length === 0 ||
-      ["halo", "hai", "menu", "start"]
-        .includes(text.toLowerCase())
-    ) {
+    if (cek.length === 0) {
+
+  await db.execute(`
+    INSERT INTO users
+    (nomor, created_at, updated_at)
+    VALUES (?, NOW(), NOW())
+  `, [nomor])
+
+} {
 
       await db.execute(`
         INSERT IGNORE INTO users
@@ -186,13 +193,31 @@ client.on("message", async msg => {
 
       return
     }
+if (
+  ["halo","hai","menu","start"]
+  .includes(text.toLowerCase())
+) {
 
+  const menu = getMenu()
+
+  await safeReply(msg, menu)
+
+  await db.execute(`
+    INSERT INTO messages
+    (nomor, pesan, sender, created_at, updated_at)
+    VALUES (?, ?, 'bot', NOW(), NOW())
+  `, [nomor, menu])
+
+  return
+}
     /* simpan pesan user */
     await db.execute(`
       INSERT INTO messages
       (nomor, pesan, sender, created_at, updated_at)
       VALUES (?, ?, 'user', NOW(), NOW())
     `, [nomor, text])
+
+console.log("✅ Pesan user tersimpan")
 
     let reply = ""
 
@@ -235,6 +260,7 @@ client.on("message", async msg => {
     console.log("BOT ERROR:", err.message)
   }
 })
+
 
 /* ==========================
    START

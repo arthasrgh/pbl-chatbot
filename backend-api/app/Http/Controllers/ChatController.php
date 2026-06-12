@@ -10,7 +10,8 @@ class ChatController extends Controller
     {
         return DB::table('messages')
             ->select('nomor')
-            ->distinct()
+            ->groupBy('nomor')
+            ->orderByRaw('MAX(created_at) DESC')
             ->get();
     }
 
