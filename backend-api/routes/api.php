@@ -39,7 +39,8 @@ Route::post(
 );
 
 Route::get('/chats', [ChatController::class,'index']);
-Route::get('/chats/{nomor}', [ChatController::class,'show']);
+Route::get('/chats/{nomor}', [ChatController::class,'show'])
+    ->where('nomor', '.*');
 
 Route::post('/send', [MessageController::class,'send']);
 
