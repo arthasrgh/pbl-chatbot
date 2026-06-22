@@ -1,243 +1,638 @@
-require("dotenv").config()
+const axios = require('axios');
+const pdf = require('pdf-parse');
+const mammoth = require('mammoth');
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const ADMIN_NUMBER = '110071723901092@lid';
 
-const { Client, LocalAuth } = require("whatsapp-web.js")
-const qrcode = require("qrcode-terminal")
-const mysql = require("mysql2/promise")
-const Groq = require("groq-sdk")
-
-/* ==========================
-   GROQ
-========================== */
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY
-})
-
-/* ==========================
-   DATABASE
-========================== */
-const db = mysql.createPool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10
-})
-
-async function testDB() {
-  try {
-    await db.query("SELECT 1")
-    console.log("✅ Database terhubung")
-  } catch (err) {
-    console.log("❌ DB ERROR:", err.message)
-  }
-}
-
-/* ==========================
-   WHATSAPP
-========================== */
 const client = new Client({
-  authStrategy: new LocalAuth(),
-  puppeteer: {
-    headless: false,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage"
-    ]
-  }
-})
+    authStrategy: new LocalAuth(),
+    takeoverOnConflict: true,
+    takeoverTimeoutMs: 30000,
 
-client.on("qr", qr => {
-  qrcode.generate(qr, { small: true })
-})
+    puppeteer: {
+        headless: false,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--disable-gpu'
+        ]
+    }
+});
+// Anti Spam
+const cooldowns = new Map();
+const aiUsers = new Set();
+const csUsers = new Set();
+const activeUsers = new Map();
+const userDocuments = new Map();
 
-client.on("ready", () => {
-  console.log("✅ Bot siap")
-})
-
-client.on("disconnected", () => {
-  console.log("⚠ reconnect...")
-  client.initialize()
-})
-
-/* ==========================
-   MENU
-========================== */
-function getMenu() {
-  return `
-*Selamat Datang di Bangkesbangpol Boyolali*
-
-Silakan pilih menu:
-
-1️⃣ Informasi Pendaftaran  
-2️⃣ Syarat Menjadi Mitra  
-3️⃣ Hubungi Admin  
-4️⃣ Bantuan Lainnya
-
-Ketik angka menu.
-`
-}
-
-/* ==========================
-   SAFE REPLY
-========================== */
-async function safeReply(msg, text) {
-  try {
-    await msg.reply(text)
-  } catch {
+async function send(chatId, text) {
     try {
-      await client.sendMessage(msg.from, text)
+        await client.sendMessage(chatId, text);
+    } catch (err) {
+        console.error('SEND ERROR:', err);
+    }
+}
+
+async function getUserNumber(msg) {
+    try {
+        const contact = await msg.getContact();
+        return contact.number || msg.from.replace(/@.*/, '');
     } catch {
-      console.log("Reply gagal")
+        return msg.from.replace(/@.*/, '');
     }
-  }
 }
 
-/* ==========================
-   AI
-========================== */
-async function askAI(text) {
-  try {
+client.on('ready', () => {
+    console.log('✅ Bot siap digunakan!');
+});
 
-    const response =
-      await groq.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: `
-Kamu adalah asisten resmi Bangkesbangpol Boyolali.
+client.on('message', async (msg) => {
 
-Jawablah berdasarkan pengetahuan dunia nyata yang valid.
+    console.log('=== PESAN MASUK ===');
 
-Aturan:
-- jawab natural
-- singkat tapi jelas
-- gunakan fakta nyata
-- jangan terlalu sering menolak
-- jika pertanyaan umum, jawab langsung
-- gunakan bahasa Indonesia sopan
-- jangan kaku seperti robot
-- jika benar-benar tidak tahu jawab:
-"Maaf, saya belum menemukan informasi pasti."
-`
-          },
-          {
-            role: "user",
-            content: text
-          }
-        ],
-        model: "llama-3.3-70b-versatile",
-        temperature: 0.4,
-        max_tokens: 500
-      })
+    try {
 
-    return response.choices[0].message.content
+            const sender = msg.from;
+            const text = (msg.body || '').trim().toLowerCase();
+            if (text === 'test faq') {
 
-  } catch (err) {
-    console.log("AI ERROR:", err.message)
-    return "Maaf, sistem sedang sibuk."
-  }
+    try {
+
+        const res = await axios.get(
+            'http://127.0.0.1:8000/api/faqs/search/skt'
+        );
+
+        console.log(res.data);
+
+        await msg.reply(
+            res.data.data.answer
+        );
+
+    } catch (err) {
+
+        console.log(err.message);
+
+        await msg.reply(
+            'FAQ tidak ditemukan'
+        );
+    }
+
+    return;
+}
+            const now = Date.now();
+
+            const senderNumber = sender.replace(/@.*/, '');
+            const adminNumber = ADMIN_NUMBER.replace(/@.*/, '');
+
+            console.log('senderNumber:', senderNumber);
+            console.log('adminNumber:', adminNumber);
+
+            if (!msg.body && !msg.hasMedia) return;
+            if (msg.fromMe) return;
+            if (msg.from.includes('@g.us')) return;
+            if (msg.isStatus) return;
+
+const contact = await msg.getContact();
+
+// ======================
+// BACA PDF & DOCX
+// ======================
+
+if (msg.hasMedia) {
+
+    try {
+
+        const media = await msg.downloadMedia();
+
+        if (!media) {
+            await msg.reply('❌ Gagal membaca file.');
+            return;
+        }
+
+        const buffer = Buffer.from(
+            media.data,
+            'base64'
+        );
+
+        let extractedText = '';
+
+        // PDF
+        if (media.mimetype === 'application/pdf') {
+
+            console.log('=== PDF DEBUG ===');
+            console.log('TYPE:', typeof pdf);
+            console.log('MIMETYPE:', media.mimetype);
+            console.log('BUFFER SIZE:', buffer.length);
+            console.log('=================');
+
+            const pdfData = await pdf(buffer);
+
+            extractedText = pdfData.text;
+        }
+
+        // DOCX
+        else if (
+            media.mimetype.includes(
+                'wordprocessingml.document'
+            )
+        ) {
+
+            const result =
+                await mammoth.extractRawText({
+                    buffer
+                });
+
+            extractedText = result.value;
+        }
+
+        else {
+
+            await msg.reply(
+                '📄 Saat ini hanya mendukung PDF dan DOCX.'
+            );
+
+            return;
+        }
+
+        userDocuments.set(
+            sender,
+            extractedText
+        );
+
+        await msg.reply(
+`📄 Dokumen berhasil dibaca.
+
+Silakan ajukan pertanyaan terkait isi dokumen.`
+        );
+
+        return;
+
+    } catch (err) {
+
+        console.error(err);
+
+        await msg.reply(
+            '❌ Gagal memproses dokumen.'
+        );
+
+        return;
+    }
 }
 
-/* ==========================
-   MESSAGE HANDLER
-========================== */
-client.on("message", async msg => {
-  try {
+// =========================
+// ADMIN REPLY
+// =========================
 
-    if (!msg.body?.trim()) return
-    if (msg.from.includes("@g.us")) return
-    if (msg.from === "status@broadcast") return
+if (
+    msg.from === ADMIN_NUMBER &&
+    msg.body.startsWith('!reply ')
+) {
 
-    const nomor = msg.from
-    const text = msg.body.trim()
+    const parts = msg.body.split(' ');
 
-    console.log("📩 Pesan:", text)
+    const targetNumber = parts[1];
+    const replyMessage = parts.slice(2).join(' ');
 
-    const [cek] = await db.execute(
-      "SELECT nomor FROM users WHERE nomor=?",
-      [nomor]
-    )
+    if (!targetNumber || !replyMessage) {
 
-    /* chat pertama / menu */
-    if (
-      cek.length === 0 ||
-      ["halo", "hai", "menu", "start"]
-        .includes(text.toLowerCase())
-    ) {
+        await msg.reply(
+            'Format:\n!reply 628xxxxxxxxxx Pesan'
+        );
 
-      await db.execute(`
-        INSERT IGNORE INTO users
-        (nomor, created_at, updated_at)
-        VALUES (?, NOW(), NOW())
-      `, [nomor])
-
-      const menu = getMenu()
-
-      await safeReply(msg, menu)
-
-      await db.execute(`
-        INSERT INTO messages
-        (nomor, pesan, sender, created_at, updated_at)
-        VALUES (?, ?, 'bot', NOW(), NOW())
-      `, [nomor, menu])
-
-      return
+        return;
     }
 
-    /* simpan pesan user */
-    await db.execute(`
-      INSERT INTO messages
-      (nomor, pesan, sender, created_at, updated_at)
-      VALUES (?, ?, 'user', NOW(), NOW())
-    `, [nomor, text])
+    const targetChat = `${targetNumber}@c.us`;
 
-    let reply = ""
+    try {
 
-    switch(text){
+        await client.sendMessage(
+            targetChat,
+            `👨‍💼 *Pesan dari Petugas Bangkesbangpol*\n\n${replyMessage}`
+        );
 
-      case "1":
-        reply =
-          "Pendaftaran dapat dilakukan melalui website resmi Pemerintah Kabupaten Boyolali."
-        break
+        await msg.reply('✅ Pesan berhasil dikirim');
 
-      case "2":
-        reply =
-          "Persyaratan umum meliputi KTP, proposal organisasi, dan surat permohonan resmi."
-        break
+    } catch (err) {
 
-      case "3":
-        reply =
-          "Admin resmi Bangkesbangpol Boyolali: 0878-2501-9307"
-        break
+        console.error(err);
 
-      case "4":
-        reply =
-          "Silakan tuliskan pertanyaan Anda."
-        break
-
-      default:
-        reply = await askAI(text)
+        await msg.reply('❌ Gagal mengirim pesan');
     }
 
-    await safeReply(msg, reply)
+    return;
+}
 
-    /* simpan balasan bot */
-    await db.execute(`
-      INSERT INTO messages
-      (nomor, pesan, sender, created_at, updated_at)
-      VALUES (?, ?, 'bot', NOW(), NOW())
-    `, [nomor, reply])
+        // =========================
+        // 1. FILTER DASAR (WAJIB)
+        // =========================
+        if (!msg.body) return;                 // kosong
+        if (msg.fromMe) return;                // pesan bot sendiri
+        if (msg.from.includes('@g.us')) return; // grup
+        if (msg.isStatus) return;              // status WA
 
-  } catch (err) {
-    console.log("BOT ERROR:", err.message)
-  }
-})
+        console.log("FROM:", sender);
+        console.log("TEXT:", text);
+        console.log("Nama:", contact.pushname);
+        console.log("Nomor:", contact.number);
 
-/* ==========================
-   START
-========================== */
-testDB()
-client.initialize()
+        // =========================
+        // 2. ADMIN STOP CS
+        // =========================
+        if (text === 'stop cs' && msg.from === ADMIN_NUMBER) {
+            csUsers.clear();
+            await msg.reply('✅ Semua sesi CS ditutup.');
+            return;
+        }
+
+        // =========================
+        // 3. MASUK CS MODE
+        // =========================
+if (text === 'cs') {
+
+    activeUsers.set(
+        ADMIN_NUMBER,
+        sender
+    );
+
+    csUsers.add(sender);
+
+    await msg.reply(
+        '👨‍💼 CS MODE AKTIF'
+    );
+
+    return;
+}
+
+// =========================
+// ADMIN BALAS CS
+// =========================
+if (sender.includes('110071723901092')) {
+
+    console.log('ADMIN TERDETEKSI');
+
+    const targetUser =
+        activeUsers.get(ADMIN_NUMBER);
+
+    console.log('TARGET USER:', targetUser);
+
+    if (targetUser) {
+
+        await client.sendMessage(
+            targetUser,
+            `👨‍💼 CS Bangkesbangpol\n\n${msg.body}`
+        );
+
+        return;
+    }
+
+}
+
+        // =========================
+        // 4. FORWARD CS MODE
+        // =========================
+        if (
+            csUsers.has(sender) &&
+            text !== 'menu'
+            ) {
+
+            const userNumber = sender.replace(/@.*/, '');
+
+            await client.sendMessage(
+                ADMIN_NUMBER,
+                `💬 CHAT USER (CS MODE)
+
+📱 ${userNumber}
+
+💬 ${msg.body}`
+            );
+
+            return;
+        }
+
+// Perintah yang tidak terkena cooldown
+const bypassCooldown = [
+    'menu',
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    'cs'
+];
+
+// Anti spam 5 detik
+if (!bypassCooldown.includes(text)) {
+
+    if (cooldowns.has(sender)) {
+
+        const last = cooldowns.get(sender);
+
+        if (now - last < 5000) {
+            return;
+        }
+    }
+
+    cooldowns.set(sender, now);
+}
+
+// Menu utama (selalu bisa dipanggil)
+if (text === 'menu') {
+
+    aiUsers.delete(sender);
+    csUsers.delete(sender);
+
+    await send(
+        msg.from,
+`🏛️ *MITRA BANGKESBANGPOL KABUPATEN BOYOLALI*
+
+Selamat datang.
+
+Silakan pilih layanan berikut:
+
+1️⃣ Informasi SKT Ormas
+2️⃣ Persyaratan Pendaftaran Ormas
+3️⃣ Alur Pengajuan SKT
+4️⃣ Jam Operasional & Lokasi Kantor
+5️⃣ Hubungi Petugas/Admin
+6️⃣ Konsultasi AI
+
+Ketik angka *1 - 6* sesuai kebutuhan Anda.`
+    );
+
+    return;
+}
+
+        if (aiUsers.has(sender) && text !== 'menu') {
+
+// ======================
+// CEK FAQ LARAVEL
+// ======================
+
+    try {
+
+
+        const faqResponse = await axios.get(
+            `http://127.0.0.1:8000/api/faqs/search/${encodeURIComponent(text)}`
+        );
+
+        if (faqResponse.data.found) {
+
+            await msg.reply(
+                `📚 Informasi Bangkesbangpol\n\n${faqResponse.data.data.answer}`
+            );
+
+            return;
+        }
+
+    } catch (err) {
+
+        console.log('FAQ tidak ditemukan');
+    }
+    try {
+
+        const documentContext =
+        userDocuments.get(sender) || '';
+
+let prompt = '';
+
+if (documentContext) {
+
+    prompt = `
+Berikut isi dokumen:
+
+${documentContext.substring(0, 10000)}
+
+Pertanyaan:
+${msg.body}
+
+Jawab HANYA berdasarkan isi dokumen.
+
+Jika tidak ditemukan,
+katakan:
+Informasi tidak ditemukan dalam dokumen.
+`;
+
+} else {
+
+    prompt = `
+Anda adalah asisten virtual Bangkesbangpol Boyolali.
+
+Jawab dengan bahasa Indonesia yang sopan dan jelas.
+
+Pertanyaan:
+${msg.body}
+`;
+}
+
+// ======================
+// CEK FAQ LARAVEL DULU
+// ======================
+
+try {
+
+    const faqRes = await axios.get(
+        `http://127.0.0.1:8000/api/faqs/search/${encodeURIComponent(text)}`
+    );
+
+    if (faqRes.data.found) {
+
+        await msg.reply(
+            faqRes.data.data.answer
+        );
+
+        return;
+    }
+
+} catch (err) {
+
+    console.log('FAQ tidak ditemukan');
+}
+
+const response = await axios.post(
+    'http://localhost:11434/api/generate',
+    {
+        model: 'qwen2.5:3b',
+        prompt: prompt, // ← DI SINI
+        stream: false
+    }
+);
+
+        const jawaban = response.data.response;
+        console.log('=== JAWABAN AI ===');
+        console.log(jawaban);
+        console.log('==================');
+
+        await client.sendMessage(
+            msg.from,
+                jawaban.substring(0, 3000)
+        );
+
+        } catch (err) {
+
+            console.error(err);
+
+            await msg.reply(
+             '❌ Maaf, layanan AI sedang mengalami gangguan.'
+         );
+        }
+
+        return;
+    }
+
+        // Kata pemicu menu
+    const greetings = [
+        'halo',
+        'hai',
+        'hi',
+        'assalamualaikum',
+        'info',
+        'layanan'
+    ];
+
+        if (greetings.includes(text)) {
+
+            await msg.reply(
+`🏛️ *MITRA BANGKESBANGPOL KABUPATEN BOYOLALI*
+
+Selamat datang.
+
+Silakan pilih layanan berikut:
+
+1️⃣ Informasi SKT Ormas
+2️⃣ Persyaratan Pendaftaran Ormas
+3️⃣ Alur Pengajuan SKT
+4️⃣ Jam Operasional & Lokasi Kantor
+5️⃣ Hubungi Petugas/Admin
+6️⃣ Konsultasi AI
+
+Ketik angka *1 - 6* sesuai kebutuhan Anda.`
+        );
+
+            return;
+        }
+
+        switch (text) {
+
+            case '1':
+                await msg.reply(
+`📋 *INFORMASI SKT ORMAS*
+
+SKT (Surat Keterangan Terdaftar) merupakan dokumen yang diberikan kepada organisasi kemasyarakatan yang telah memenuhi persyaratan administrasi sesuai ketentuan yang berlaku.
+
+Untuk mengetahui persyaratan dan alur pendaftaran, silakan pilih menu 2 atau 3.`
+            );
+                break;
+
+            case '2':
+                await msg.reply(
+`📄 *PERSYARATAN PENDAFTARAN ORMAS*
+
+Dokumen yang umumnya diperlukan:
+
+• Surat permohonan
+• Akta pendirian organisasi
+• AD/ART
+• Susunan pengurus
+• Program kerja organisasi
+• Domisili sekretariat
+• Dokumen pendukung lainnya sesuai ketentuan
+
+Petugas dapat meminta dokumen tambahan sesuai regulasi yang berlaku.`
+            );
+                break;
+
+            case '3':
+                await msg.reply(
+`📝 *ALUR PENGAJUAN SKT*
+
+1. Menyiapkan dokumen persyaratan
+2. Mengajukan permohonan
+3. Verifikasi administrasi
+4. Perbaikan berkas (jika diperlukan)
+5. Penerbitan SKT apabila persyaratan telah lengkap
+
+Untuk konsultasi lebih lanjut silakan hubungi petugas.`
+            );
+                break;
+
+            case '4':
+                await msg.reply(
+`🕒 *JAM OPERASIONAL*
+
+Senin - Kamis
+07.30 - 16.00 WIB
+
+Jumat
+07.30 - 11.00 WIB
+
+📍 Badan Kesatuan Bangsa dan Politik Kabupaten Boyolali
+
+Silakan hubungi petugas untuk informasi lokasi dan jadwal terbaru.`
+            );
+                break;
+
+            case '5':
+                await msg.reply(
+`👨‍💼 *HUBUNGI PETUGAS*
+
+Silakan ketik:
+
+*CS*
+
+untuk diteruskan kepada petugas Bangkesbangpol Boyolali.`
+            );
+                break;
+
+           case '6':
+
+        aiUsers.add(sender);
+
+        await msg.reply(
+`🤖 *KONSULTASI AI AKTIF*
+
+Silakan ajukan pertanyaan terkait:
+
+• SKT Ormas
+• Organisasi Kemasyarakatan
+• Kesbangpol
+• Layanan Bangkesbangpol
+
+Ketik *menu* untuk kembali ke menu utama.`
+        );
+            break;
+
+            case 'cs':
+                await msg.reply(
+`📢 Permintaan Anda telah diteruskan kepada petugas.
+
+Mohon tunggu respon dari admin Bangkesbangpol Boyolali.`
+            );
+                break;
+
+            default:
+                // Diam jika pesan tidak dikenali
+                return;
+            }
+
+        } catch (err) {
+            console.error('❌ Error:', err);
+        }
+    });
+
+client.on('auth_failure', msg => {
+    console.error('❌ Auth Failure:', msg);
+});
+
+client.on('disconnected', reason => {
+    console.log('⚠️ WhatsApp Disconnect:', reason);
+});
+
+client.on('change_state', state => {
+    console.log('📱 State:', state);
+});
+
+client.initialize();

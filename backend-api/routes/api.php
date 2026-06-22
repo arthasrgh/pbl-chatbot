@@ -7,6 +7,7 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\BotController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\FaqController;
 
 Route::post('/login',
     [AuthController::class,'login']
@@ -59,3 +60,6 @@ Route::prefix('admins')->group(function () {
     Route::put('/{id}', [UserController::class, 'update']);
     Route::delete('/{id}', [UserController::class, 'delete']);
 });
+
+Route::get('/faqs', [FaqController::class, 'index']);
+Route::get('/faqs/search/{keyword}', [FaqController::class, 'search']);
