@@ -452,6 +452,33 @@ try {
     console.log('FAQ tidak ditemukan');
 }
 
+// ======================
+// CEK FAQ LARAVEL DULU
+// ======================
+
+try {
+
+    const faqRes = await axios.get(
+        `http://127.0.0.1:8000/api/faqs/search/${encodeURIComponent(text)}`
+    );
+
+    if (faqRes.data.found) {
+
+        console.log('FAQ DITEMUKAN');
+
+        await client.sendMessage(
+            msg.from,
+            faqRes.data.data.answer
+        );
+
+        return;
+    }
+
+} catch (err) {
+
+    console.log('FAQ tidak ditemukan');
+}
+
 const response = await axios.post(
     'http://localhost:11434/api/generate',
     {
