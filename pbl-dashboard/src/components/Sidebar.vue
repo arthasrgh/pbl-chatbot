@@ -64,6 +64,16 @@
           Hot Leads
         </button>
 
+        <button
+          v-if="isAdmin"
+          class="menu-item"
+          :class="{ active: active === 'ai' }"
+          @click="router.push('/ai-usage')"
+        >
+          <Brain :size="20"/>
+          Monitoring AI
+        </button>
+
         <!-- HANYA ADMIN -->
 
         <button
@@ -127,13 +137,13 @@ import { computed } from "vue"
 import { useRouter } from "vue-router"
 
 import {
-
   LayoutDashboard,
   MessageSquareMore,
   Flame,
   Users,
-  LogOut
-
+  LogOut,
+  Smartphone,
+  Brain
 } from "lucide-vue-next"
 
 const router = useRouter()

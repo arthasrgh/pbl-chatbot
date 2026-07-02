@@ -9,6 +9,8 @@ use App\Http\Controllers\StatsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\UsersBotController;
+use App\Http\Controllers\AiUsageController;
+
 
 Route::post('/login',
     [AuthController::class,'login']
@@ -53,6 +55,9 @@ Route::post('/handover', [BotController::class,'handover']);
 Route::get('/stats',[StatsController::class,'index']);
 Route::get('/chart',[StatsController::class,'chart']);
 Route::get('/wordcloud', [StatsController::class, 'wordcloud']);
+Route::get('/stats/ai', [StatsController::class, 'aiStats']);
+Route::get('/ai-chart', [StatsController::class, 'aiChart']);
+
 
 Route::get('/users',[UserController::class,'index']);
 Route::post('/users/toggle',[UserController::class,'toggle']);
@@ -96,4 +101,6 @@ Route::get(
     [UsersBotController::class, 'show']
 );
 
-Route::get('/wordcloud',[StatsController::class,'wordcloud']);
+Route::post('/ai/check-limit', [AiUsageController::class, 'checkLimit']);
+Route::get('/ai/usages', [AiUsageController::class, 'index']);
+

@@ -66,6 +66,20 @@
           color="teal"
         />
 
+        <StatCard
+          title="User AI"
+          :value="aiUsage.total_ai_users"
+          :icon="Users"
+          color="indigo"
+        />
+
+        <StatCard
+          title="AI Request"
+          :value="aiUsage.total_ai_request"
+          :icon="BarChart3"
+          color="pink"
+        />
+
       </div>
 
       <!-- ===================== -->
@@ -97,6 +111,24 @@
             </div>
 
           </div>
+
+          <div class="card">
+
+            <div class="card-header">
+
+                <h3>Grafik Penggunaan AI</h3>
+
+                    <span>Realtime</span>
+
+            </div>
+
+            <div class="chart-wrapper">
+
+                <canvas ref="aiChartCanvas"></canvas>
+
+            </div>
+
+        </div>
 
           <!-- Statistik Progress -->
 
@@ -351,6 +383,8 @@ import {
 
 } from "lucide-vue-next"
 
+const lastUpdate = ref("");
+
 const router = useRouter()
 
 // =======================================
@@ -373,11 +407,18 @@ const stats = ref({
 
 })
 
+const aiUsage = ref({
+    total_ai_users: 0,
+    total_ai_request: 0
+})
+
 const chart = ref([])
-
 const recentChat = ref([])
-
 const chartCanvas = ref(null)
+const aiChart = ref([]);
+const aiChartCanvas = ref(null);
+
+let aiChartObject = null;
 
 let myChart = null
 
@@ -394,26 +435,39 @@ const loadStats = async () => {
         const res = await api.get("/stats")
 
         stats.value = {
-
             total_chat: res.data.total_chat || 0,
-
             total_users: res.data.total_users || 0,
-
             today_chat: res.data.today_chat || 0,
-
             hot_leads: res.data.hot_leads || 0,
-
             total_admin: res.data.total_admin || 0,
-
             total_cs: res.data.total_cs || 0
-
         }
+
+    } catch (err) {
+
+        console.error("Load Stats Error :", err)
 
     }
 
-    catch (err) {
+}
 
-        console.error("Load Stats Error :", err)
+    const loadAiUsage = async () => {
+
+    try {
+
+        const res = await api.get("/ai/usages");
+
+        aiUsage.value.total_ai_users = res.data.length;
+
+        aiUsage.value.total_ai_request =
+            res.data.reduce(
+                (a, b) => a + Number(b.jumlah),
+                0
+            );
+
+    } catch (err) {
+
+        console.log(err);
 
     }
 
@@ -553,6 +607,46 @@ const renderChart = async () => {
 
 }
 
+const renderAiChart = async () => {
+
+    await nextTick();
+
+    if (!aiChartCanvas.value) return;
+
+    if (aiChartObject) {
+        aiChartObject.destroy();
+    }
+
+    aiChartObject = new Chart(aiChartCanvas.value, {
+
+        type: "bar",
+
+        data: {
+
+            labels: aiChart.value.map(i => i.date),
+
+            datasets: [
+                {
+                    label: "AI Request",
+                    data: aiChart.value.map(i => i.total),
+                    backgroundColor: "#4f46e5"
+                }
+            ]
+
+        },
+
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false
+
+        }
+
+    });
+
+}
+
 // =======================================
 // FORMAT WAKTU
 // =======================================
@@ -615,13 +709,14 @@ const openHistory = (nomor) => {
 
 const refreshDashboard = async () => {
 
-    await loadStats()
+    await loadStats();
+    await loadAiUsage();
+    await loadChart();
+    await loadAiChart();
+    await loadRecentChat();
 
-    await loadChart()
-
-    await loadRecentChat()
-
-    await renderChart()
+    await renderChart();
+    await renderAiChart();
 
 }
 
@@ -629,17 +724,21 @@ const refreshDashboard = async () => {
 // MOUNT
 // =======================================
 
+let refreshInterval = null;
+
 onMounted(async () => {
 
-    await refreshDashboard()
+    await refreshDashboard();
 
-    interval = setInterval(async () => {
+    refreshInterval = setInterval(async () => {
 
-        await refreshDashboard()
+        await refreshDashboard();
 
-    }, 5000)
+    }, 10000); // refresh setiap 10 detik
 
-})
+    lastUpdate.value = new Date().toLocaleTimeString("id-ID");
+
+});
 
 // =======================================
 // DESTROY
@@ -647,19 +746,35 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
 
-    if (interval) {
-
-        clearInterval(interval)
-
-    }
-
     if (myChart) {
+        myChart.destroy();
+    }
 
-        myChart.destroy()
+    if (aiChartObject) {
+        aiChartObject.destroy();
+    }
+
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
+
+});
+
+const loadAiChart = async () => {
+
+    try {
+
+        const res = await api.get("/ai-chart");
+
+        aiChart.value = res.data;
+
+    } catch (err) {
+
+        console.log(err);
 
     }
 
-})
+}
 
 </script>
 

@@ -6,6 +6,7 @@ import History from "../views/History.vue"
 import HotLeads from "../views/HotLeads.vue"
 import Manajemen from "../views/Manajemen.vue"
 import UserBot from "../views/UserBot.vue"
+import AiUsage from "../views/AiUsage.vue"
 // 1. Import komponen baru
 import ResetPassword from "../views/ResetPassword.vue"
 
@@ -47,10 +48,18 @@ const router = createRouter({
             meta: { requiresAuth: true }
         },
         {
+            path: "/ai-usage",
+            component: AiUsage,
+            meta: {
+            requiresAuth: true,
+            role: "admin"
+            }
+        },
+        {
             path: "/manajemen",
             component: Manajemen,
             meta: { requiresAuth: true, role: "admin" }
-        }
+        },
     ]
 })
 
