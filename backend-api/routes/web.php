@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\FaqController;
+use App\Http\Controllers\Admin\ChatController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -28,3 +29,13 @@ Route::put('/admin/faqs/{id}', [FaqController::class, 'update']);
 
 // Hapus FAQ
 Route::delete('/admin/faqs/{id}', [FaqController::class, 'destroy']);
+
+Route::get(
+    '/admin/chats',
+    [ChatController::class, 'index']
+);
+
+Route::get(
+    '/admin/chats/{nomor}',
+    [ChatController::class, 'show']
+);

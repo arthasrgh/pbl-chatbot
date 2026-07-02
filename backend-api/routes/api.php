@@ -8,6 +8,7 @@ use App\Http\Controllers\BotController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\FaqController;
+use App\Http\Controllers\UsersBotController;
 
 Route::post('/login',
     [AuthController::class,'login']
@@ -42,6 +43,8 @@ Route::post(
 Route::get('/chats', [ChatController::class,'index']);
 Route::get('/chats/{nomor}', [ChatController::class,'show'])
     ->where('nomor', '.*');
+Route::post('/chats', [ChatController::class,'store']);
+Route::get('/recent-chat', [ChatController::class, 'recent']);
 
 Route::post('/send', [MessageController::class,'send']);
 
@@ -49,6 +52,7 @@ Route::post('/handover', [BotController::class,'handover']);
 
 Route::get('/stats',[StatsController::class,'index']);
 Route::get('/chart',[StatsController::class,'chart']);
+Route::get('/wordcloud', [StatsController::class, 'wordcloud']);
 
 Route::get('/users',[UserController::class,'index']);
 Route::post('/users/toggle',[UserController::class,'toggle']);
@@ -63,3 +67,33 @@ Route::prefix('admins')->group(function () {
 
 Route::get('/faqs', [FaqController::class, 'index']);
 Route::get('/faqs/search/{keyword}', [FaqController::class, 'search']);
+
+Route::get('/hot-leads',[StatsController::class,'hotLeads']);
+
+Route::get('/users-bot', [UsersBotController::class, 'index']);
+
+Route::get('/users-bot/summary', [UsersBotController::class, 'summary']);
+
+
+/*
+|--------------------------------------------------------------------------
+| USER BOT
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/users-bot',
+    [UsersBotController::class, 'index']
+);
+
+Route::get(
+    '/users-bot/summary',
+    [UsersBotController::class, 'summary']
+);
+
+Route::get(
+    '/users-bot/{nomor}',
+    [UsersBotController::class, 'show']
+);
+
+Route::get('/wordcloud',[StatsController::class,'wordcloud']);

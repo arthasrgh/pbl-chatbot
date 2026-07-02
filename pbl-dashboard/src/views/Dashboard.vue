@@ -1,460 +1,1033 @@
 <template>
   <div class="dashboard">
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
+    <!-- Sidebar -->
+    <Sidebar active="dashboard" />
 
-      <div class="logo-area">
-        <img :src="logo" class="logo" />
-        <div>
-          <h2>Bangkesbangpol</h2>
-          <p>Dashboard Bot</p>
-        </div>
-      </div>
-
-      <div class="menu-section">
-
-        <button class="menu active">
-          <LayoutDashboard size="18" />
-          Dashboard
-        </button>
-
-        <button class="menu" @click="goRiwayat">
-          <MessageCircle size="18" />
-          Riwayat Chat
-        </button>
-
-        <button class="menu" @click="goManage">
-          <Users size="18" />
-          Manajemen Admin
-        </button>
-
-      </div>
-
-      <button class="logout-btn" @click="logout">
-        <LogOut size="18" />
-        Logout
-      </button>
-
-    </aside>
-
-    <!-- MAIN -->
+    <!-- Main -->
     <main class="main-content">
 
-      <!-- HEADER -->
-      <div class="topbar">
+      <Topbar
+        title="Dashboard"
+        subtitle="Monitoring Chatbot Bangkesbangpol Boyolali"
+      />
 
-        <div>
-          <h1>Dashboard</h1>
-          <p>Monitoring chatbot Bangkesbangpol Boyolali</p>
-        </div>
+      <!-- ===================== -->
+      <!-- STATISTIK -->
+      <!-- ===================== -->
 
-        <div class="admin-box">
-          <div class="admin-avatar">
-            N
-          </div>
-
-          <div>
-            <h4>Admin</h4>
-            <span>Online</span>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- STATS -->
       <div class="stats-grid">
 
-        <div class="stat-card red">
-          <div>
-            <h3>{{ stats.total_chat }}</h3>
-            <p>Total Chat</p>
-          </div>
+        <StatCard
+          title="Total Chat"
+          :value="stats.total_chat"
+          :icon="MessageSquareMore"
+          color="red"
+        />
 
-          <MessageSquareMore class="icon" />
-        </div>
+        <StatCard
+            title="Total User"
+            :value="stats.total_users"
+            :icon="Users"
+            color="blue"
+            @click="router.push('/users-bot')"
+        />
 
-        <div class="stat-card blue">
-          <div>
-            <h3>{{ stats.total_users }}</h3>
-            <p>Total User</p>
-          </div>
+        <StatCard
+          title="Chat Hari Ini"
+          :value="stats.today_chat"
+          :icon="BarChart3"
+          color="green"
+        />
 
-          <Users class="icon" />
-        </div>
+        <StatCard
+          title="Hot Leads"
+          :value="stats.hot_leads"
+          :icon="Flame"
+          color="orange"
+          @click="router.push('/hot-leads')"
+        />
 
-        <div class="stat-card green">
-          <div>
-            <h3>{{ stats.today_chat }}</h3>
-            <p>Chat Hari Ini</p>
-          </div>
+        <!-- ADMIN -->
 
-          <BarChart3 class="icon" />
-        </div>
+        <StatCard
+          title="Administrator"
+          :value="stats.total_admin"
+          :icon="Shield"
+          color="purple"
+        />
 
-        <div class="stat-card orange">
-          <div>
-            <h3>{{ stats.hot_leads }}</h3>
-            <p>Hot Leads</p>
-          </div>
+        <!-- CUSTOMER SERVICE -->
 
-          <Flame class="icon" />
-        </div>
+        <StatCard
+          title="Customer Service"
+          :value="stats.total_cs"
+          :icon="Headset"
+          color="teal"
+        />
 
       </div>
 
-      <!-- CHART -->
-      <div class="chart-card">
+      <!-- ===================== -->
+      <!-- CONTENT -->
+      <!-- ===================== -->
 
-        <div class="chart-header">
-          <h2>Grafik Chat Harian</h2>
+      <div class="content-grid">
+
+        <!-- ================= LEFT ================= -->
+
+        <div class="left-panel">
+
+          <!-- Grafik -->
+
+          <div class="card">
+
+            <div class="card-header">
+
+              <h3>Grafik Chat Harian</h3>
+
+              <span>Realtime</span>
+
+            </div>
+
+            <div class="chart-wrapper">
+
+              <canvas ref="chartCanvas"></canvas>
+
+            </div>
+
+          </div>
+
+          <!-- Statistik Progress -->
+
+          <div class="card">
+
+            <div class="card-header">
+
+              <h3>Statistik Sistem</h3>
+
+            </div>
+
+            <!-- USER -->
+
+            <div class="progress-item">
+
+              <span>Total User</span>
+
+              <strong>{{ stats.total_users }}</strong>
+
+            </div>
+
+            <div class="progress">
+
+              <div
+                class="progress-fill blue"
+                :style="{
+                  width: Math.min(stats.total_users * 2,100) + '%'
+                }"
+              ></div>
+
+            </div>
+
+            <!-- CHAT -->
+
+            <div class="progress-item">
+
+              <span>Chat Hari Ini</span>
+
+              <strong>{{ stats.today_chat }}</strong>
+
+            </div>
+
+            <div class="progress">
+
+              <div
+                class="progress-fill green"
+                :style="{
+                  width: Math.min(stats.today_chat * 5,100) + '%'
+                }"
+              ></div>
+
+            </div>
+
+            <!-- HOT LEADS -->
+
+            <div class="progress-item">
+
+              <span>Hot Leads</span>
+
+              <strong>{{ stats.hot_leads }}</strong>
+
+            </div>
+
+            <div class="progress">
+
+              <div
+                class="progress-fill orange"
+                :style="{
+                  width: Math.min(stats.hot_leads * 10,100) + '%'
+                }"
+              ></div>
+
+            </div>
+
+            <!-- ADMIN -->
+
+            <div class="progress-item">
+
+              <span>Administrator</span>
+
+              <strong>{{ stats.total_admin }}</strong>
+
+            </div>
+
+            <div class="progress">
+
+              <div
+                class="progress-fill purple"
+                :style="{
+                  width: Math.min(stats.total_admin * 50,100) + '%'
+                }"
+              ></div>
+
+            </div>
+
+            <!-- CS -->
+
+            <div class="progress-item">
+
+              <span>Customer Service</span>
+
+              <strong>{{ stats.total_cs }}</strong>
+
+            </div>
+
+            <div class="progress">
+
+              <div
+                class="progress-fill teal"
+                :style="{
+                  width: Math.min(stats.total_cs * 50,100) + '%'
+                }"
+              ></div>
+
+            </div>
+
+          </div>
+
         </div>
 
-        <div class="chart-wrapper">
-          <canvas ref="chartCanvas"></canvas>
+        <!-- ================= RIGHT ================= -->
+
+        <div class="right-panel">
+
+          <div class="card">
+
+            <div class="card-header">
+
+              <h3>Chat Terbaru</h3>
+
+              <button
+                class="refresh-btn"
+                @click="loadRecentChat"
+              >
+
+                Refresh
+
+              </button>
+
+            </div>
+
+            <div
+              v-if="recentChat.length"
+              class="recent-list"
+            >
+
+              <div
+                v-for="chat in recentChat"
+                :key="chat.created_at"
+                class="chat-item"
+                @click="openHistory(chat.nomor)"
+              >
+
+                <div class="avatar">
+
+                  {{ chat.nomor.slice(-2) }}
+
+                </div>
+
+                <div class="chat-info">
+
+                  <div class="chat-top">
+
+                    <strong>
+
+                      {{ chat.nomor }}
+
+                    </strong>
+
+                    <span
+                      class="badge"
+                      :class="
+                        chat.sender == 'bot'
+                          ? 'bot'
+                          : 'user'
+                      "
+                    >
+
+                      {{ chat.sender }}
+
+                    </span>
+
+                  </div>
+
+                  <p>
+
+                    {{ chat.pesan }}
+
+                  </p>
+
+                  <small>
+
+                    {{ formatTime(chat.created_at) }}
+
+                  </small>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            <div
+              v-else
+              class="empty"
+            >
+
+              Belum ada chat.
+
+            </div>
+
+            <button
+              class="view-btn"
+              @click="router.push('/history')"
+            >
+
+              Lihat Semua Chat
+
+            </button>
+
+          </div>
+
         </div>
 
       </div>
 
     </main>
+
   </div>
 </template>
 
 <script setup>
-import {
-  LayoutDashboard,
-  MessageCircle,
-  Users,
-  LogOut,
-  MessageSquareMore,
-  BarChart3,
-  Flame
-} from "lucide-vue-next"
 
-import { ref, onMounted, nextTick } from "vue"
+import { ref, onMounted, nextTick, onBeforeUnmount } from "vue"
 import { useRouter } from "vue-router"
 import Chart from "chart.js/auto"
+
 import api from "../services/api"
-import logo from "../assets/Logo_Boyo2.png"
+
+import Sidebar from "../components/Sidebar.vue"
+import Topbar from "../components/Topbar.vue"
+import StatCard from "../components/StatCard.vue"
+
+import {
+
+    MessageSquareMore,
+    Users,
+    BarChart3,
+    Flame,
+    Shield,
+    Headset
+
+} from "lucide-vue-next"
 
 const router = useRouter()
 
+// =======================================
+// STATE
+// =======================================
+
 const stats = ref({
-  total_chat: 0,
-  total_users: 0,
-  today_chat: 0,
-  hot_leads: 0
+
+    total_chat: 0,
+
+    total_users: 0,
+
+    today_chat: 0,
+
+    hot_leads: 0,
+
+    total_admin: 0,
+
+    total_cs: 0
+
 })
 
 const chart = ref([])
+
+const recentChat = ref([])
 
 const chartCanvas = ref(null)
 
 let myChart = null
 
+let interval = null
+
+// =======================================
+// LOAD STATISTIK
+// =======================================
+
 const loadStats = async () => {
-  const res = await api.get("/stats")
-  stats.value = res.data
+
+    try {
+
+        const res = await api.get("/stats")
+
+        stats.value = {
+
+            total_chat: res.data.total_chat || 0,
+
+            total_users: res.data.total_users || 0,
+
+            today_chat: res.data.today_chat || 0,
+
+            hot_leads: res.data.hot_leads || 0,
+
+            total_admin: res.data.total_admin || 0,
+
+            total_cs: res.data.total_cs || 0
+
+        }
+
+    }
+
+    catch (err) {
+
+        console.error("Load Stats Error :", err)
+
+    }
+
 }
 
+// =======================================
+// LOAD CHART
+// =======================================
+
 const loadChart = async () => {
-  const res = await api.get("/chart")
-  chart.value = res.data
+
+    try {
+
+        const res = await api.get("/chart")
+
+        chart.value = res.data
+
+    }
+
+    catch (err) {
+
+        console.error(err)
+
+    }
+
 }
+
+// =======================================
+// LOAD RECENT CHAT
+// =======================================
+
+const loadRecentChat = async () => {
+
+    try {
+
+        const res = await api.get("/recent-chat")
+
+        recentChat.value = res.data
+
+    }
+
+    catch (err) {
+
+        console.error(err)
+
+    }
+
+}
+
+// =======================================
+// RENDER CHART
+// =======================================
 
 const renderChart = async () => {
 
-  await nextTick()
+    await nextTick()
 
-  if (!chartCanvas.value) return
+    if (!chartCanvas.value) return
 
-  if (myChart) {
-    myChart.destroy()
-  }
+    if (myChart) {
 
-  myChart = new Chart(chartCanvas.value, {
-    type: "line",
+        myChart.destroy()
 
-    data: {
-      labels: chart.value.map(i => i.date),
-
-      datasets: [
-        {
-          label: "Jumlah Chat",
-          data: chart.value.map(i => i.total),
-          fill: true,
-          tension: 0.4
-        }
-      ]
-    },
-
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
     }
-  })
+
+    myChart = new Chart(chartCanvas.value, {
+
+        type: "line",
+
+        data: {
+
+            labels: chart.value.map(i => i.date),
+
+            datasets: [
+
+                {
+
+                    label: "Jumlah Chat",
+
+                    data: chart.value.map(i => i.total),
+
+                    borderColor: "#b71c1c",
+
+                    backgroundColor: "rgba(183,28,28,.12)",
+
+                    fill: true,
+
+                    tension: .4,
+
+                    pointRadius: 4,
+
+                    pointBackgroundColor: "#b71c1c",
+
+                    borderWidth: 3
+
+                }
+
+            ]
+
+        },
+
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            plugins: {
+
+                legend: {
+
+                    display: true
+
+                }
+
+            },
+
+            scales: {
+
+                y: {
+
+                    beginAtZero: true,
+
+                    ticks: {
+
+                        precision: 0
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    })
+
 }
+
+// =======================================
+// FORMAT WAKTU
+// =======================================
+
+const formatTime = (datetime) => {
+
+    if (!datetime) return "-"
+
+    const now = new Date()
+
+    const date = new Date(datetime)
+
+    const diff = Math.floor((now - date) / 1000)
+
+    if (diff < 60) {
+
+        return diff + " detik lalu"
+
+    }
+
+    if (diff < 3600) {
+
+        return Math.floor(diff / 60) + " menit lalu"
+
+    }
+
+    if (diff < 86400) {
+
+        return Math.floor(diff / 3600) + " jam lalu"
+
+    }
+
+    return date.toLocaleDateString("id-ID")
+
+}
+
+// =======================================
+// BUKA HISTORY
+// =======================================
+
+const openHistory = (nomor) => {
+
+    router.push({
+
+        path: "/history",
+
+        query: {
+
+            nomor
+
+        }
+
+    })
+
+}
+
+// =======================================
+// AUTO REFRESH
+// =======================================
+
+const refreshDashboard = async () => {
+
+    await loadStats()
+
+    await loadChart()
+
+    await loadRecentChat()
+
+    await renderChart()
+
+}
+
+// =======================================
+// MOUNT
+// =======================================
 
 onMounted(async () => {
 
-  await loadStats()
-  await loadChart()
-  renderChart()
+    await refreshDashboard()
 
-  setInterval(async () => {
-    await loadStats()
-    await loadChart()
-    renderChart()
-  }, 5000)
+    interval = setInterval(async () => {
+
+        await refreshDashboard()
+
+    }, 5000)
 
 })
 
-const logout = () => {
-  localStorage.removeItem("isLogin")
-  router.push("/")
-}
+// =======================================
+// DESTROY
+// =======================================
 
-const goRiwayat = () => {
-  router.push("/history")
-}
+onBeforeUnmount(() => {
 
-const goManage = () => {
-  router.push("/manajemen")
-}
+    if (interval) {
+
+        clearInterval(interval)
+
+    }
+
+    if (myChart) {
+
+        myChart.destroy()
+
+    }
+
+})
+
 </script>
 
 <style scoped>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:'Poppins',sans-serif;
-}
+
+/* ==========================================
+   DASHBOARD LAYOUT
+========================================== */
 
 .dashboard{
-display:flex;
-min-height:100vh;
-background:#f4f7fb;
+    display:flex;
+    min-height:100vh;
+    background:#f4f6fb;
 }
 
-/* SIDEBAR */
-.sidebar{
-width:260px;
-background:#111827;
-padding:25px 20px;
-display:flex;
-flex-direction:column;
-justify-content:space-between;
-}
-
-.logo-area{
-display:flex;
-align-items:center;
-gap:14px;
-margin-bottom:40px;
-}
-
-.logo{
-width:50px;
-height:50px;
-}
-
-.logo-area h2{
-color:white;
-font-size:18px;
-}
-
-.logo-area p{
-color:#9ca3af;
-font-size:13px;
-}
-
-.menu-section{
-display:flex;
-flex-direction:column;
-gap:12px;
-}
-
-.menu{
-border:none;
-padding:14px;
-border-radius:14px;
-display:flex;
-align-items:center;
-gap:12px;
-font-size:15px;
-font-weight:600;
-cursor:pointer;
-background:transparent;
-color:#d1d5db;
-transition:0.3s;
-}
-
-.menu:hover{
-background:#1f2937;
-}
-
-.active{
-background:#ef4444;
-color:white;
-}
-
-.logout-btn{
-border:none;
-padding:14px;
-border-radius:14px;
-background:#ef4444;
-color:white;
-font-weight:bold;
-display:flex;
-align-items:center;
-justify-content:center;
-gap:10px;
-cursor:pointer;
-}
-
-/* MAIN */
 .main-content{
-flex:1;
-padding:30px;
+    flex:1;
+    padding:30px;
+    overflow-y:auto;
 }
 
-/* TOPBAR */
-.topbar{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:30px;
-}
+/* ==========================================
+   STAT CARD GRID
+========================================== */
 
-.topbar h1{
-font-size:30px;
-color:#111827;
-}
-
-.topbar p{
-color:#6b7280;
-margin-top:5px;
-}
-
-.admin-box{
-display:flex;
-align-items:center;
-gap:12px;
-background:white;
-padding:10px 16px;
-border-radius:14px;
-box-shadow:0 4px 15px rgba(0,0,0,0.05);
-margin-right: 20px;
-margin-left: 20px;
-}
-
-.admin-avatar{
-width:45px;
-height:45px;
-border-radius:50%;
-background:#ef4444;
-display:flex;
-justify-content:center;
-align-items:center;
-color:white;
-font-weight:bold;
-}
-
-/* STATS */
 .stats-grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-gap:20px;
-margin-bottom:30px;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:22px;
+    margin-bottom:30px;
 }
 
-.stat-card{
-padding:25px;
-border-radius:22px;
-color:white;
-display:flex;
-justify-content:space-between;
-align-items:center;
-box-shadow:0 10px 25px rgba(0,0,0,0.08);
-transition:0.3s;
+/* ==========================================
+   CONTENT GRID
+========================================== */
+
+.content-grid{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:24px;
+    align-items:start;
 }
 
-.stat-card:hover{
-transform:translateY(-5px);
+.left-panel,
+.right-panel{
+    display:flex;
+    flex-direction:column;
+    gap:24px;
 }
 
-.stat-card h3{
-font-size:34px;
-margin-bottom:5px;
+/* ==========================================
+   CARD
+========================================== */
+
+.card{
+    background:#fff;
+    border-radius:20px;
+    padding:24px;
+    box-shadow:0 10px 30px rgba(0,0,0,.06);
+    transition:.3s;
+    animation:fadeUp .5s ease;
 }
 
-.stat-card p{
-font-size:14px;
+.card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 18px 40px rgba(0,0,0,.08);
 }
 
-.icon{
-width:45px;
-height:45px;
-opacity:0.9;
+/* ==========================================
+   CARD HEADER
+========================================== */
+
+.card-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:22px;
 }
 
-.red{
-background:linear-gradient(135deg,#ef4444,#dc2626);
+.card-header h3{
+    font-size:20px;
+    font-weight:700;
+    color:#991b1b;
 }
 
-.blue{
-background:linear-gradient(135deg,#3b82f6,#2563eb);
+.card-header span{
+    font-size:13px;
+    color:#6b7280;
 }
 
-.green{
-background:linear-gradient(135deg,#10b981,#059669);
-}
-
-.orange{
-background:linear-gradient(135deg,#f59e0b,#d97706);
-}
-
-/* CHART */
-.chart-card{
-background:white;
-padding:25px;
-border-radius:25px;
-box-shadow:0 4px 20px rgba(0,0,0,0.05);
-margin-top: -30px;
-margin-left: 20px;
-margin-right: 20px;
-}
-
-.chart-header{
-margin-bottom:20px;
-}
-
-.chart-header h2{
-font-size:22px;
-color:#111827;
-}
+/* ==========================================
+   CHART
+========================================== */
 
 .chart-wrapper{
-height:400px;
+    width:100%;
+    height:360px;
 }
 
-/* RESPONSIVE */
-@media(max-width:900px){
-
-.dashboard{
-flex-direction:column;
+.chart-wrapper canvas{
+    width:100%!important;
+    height:100%!important;
 }
 
-.sidebar{
-width:100%;
+/* ==========================================
+   PROGRESS
+========================================== */
+
+.progress-item{
+    display:flex;
+    justify-content:space-between;
+    margin-top:20px;
+    margin-bottom:8px;
+    font-size:14px;
+    color:#374151;
 }
 
-.topbar{
-flex-direction:column;
-align-items:flex-start;
-gap:20px;
+.progress{
+    width:100%;
+    height:10px;
+    border-radius:20px;
+    background:#eceff4;
+    overflow:hidden;
+    margin-bottom:18px;
 }
 
+.progress-fill{
+    height:100%;
+    border-radius:20px;
+    transition:width .8s ease;
 }
+
+.progress-fill.blue{
+    background:#2563eb;
+}
+
+.progress-fill.green{
+    background:#16a34a;
+}
+
+.progress-fill.orange{
+    background:#ea580c;
+}
+
+.progress-fill.purple{
+    background:#7c3aed;
+}
+
+.progress-fill.teal{
+    background:#0f766e;
+}
+
+/* ==========================================
+   RECENT CHAT
+========================================== */
+
+.recent-list{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    max-height:650px;
+    overflow-y:auto;
+    padding-right:5px;
+}
+
+.recent-list::-webkit-scrollbar{
+    width:6px;
+}
+
+.recent-list::-webkit-scrollbar-thumb{
+    background:#d1d5db;
+    border-radius:20px;
+}
+
+.chat-item{
+    display:flex;
+    gap:14px;
+    padding:14px;
+    border-radius:14px;
+    transition:.25s;
+    cursor:pointer;
+    border:1px solid #eef2f7;
+}
+
+.chat-item:hover{
+    background:#fef2f2;
+    transform:translateX(4px);
+}
+
+.avatar{
+    width:50px;
+    height:50px;
+    min-width:50px;
+    border-radius:50%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:#b71c1c;
+    color:#fff;
+    font-weight:700;
+    font-size:16px;
+}
+
+.chat-info{
+    flex:1;
+}
+
+.chat-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:6px;
+}
+
+.chat-top strong{
+    color:#111827;
+    font-size:15px;
+}
+
+.chat-info p{
+    font-size:13px;
+    color:#6b7280;
+    margin:6px 0;
+    overflow:hidden;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+}
+
+.chat-info small{
+    color:#9ca3af;
+    font-size:12px;
+}
+
+/* ==========================================
+   BADGE
+========================================== */
+
+.badge{
+    padding:4px 10px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+}
+
+.badge.user{
+    background:#dcfce7;
+    color:#15803d;
+}
+
+.badge.bot{
+    background:#dbeafe;
+    color:#2563eb;
+}
+
+/* ==========================================
+   BUTTON
+========================================== */
+
+.refresh-btn{
+    border:none;
+    background:#b71c1c;
+    color:#fff;
+    padding:8px 14px;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:13px;
+    font-weight:600;
+    transition:.3s;
+}
+
+.refresh-btn:hover{
+    background:#991b1b;
+}
+
+.view-btn{
+    width:100%;
+    margin-top:20px;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    background:#b71c1c;
+    color:#fff;
+    font-weight:700;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.view-btn:hover{
+    background:#991b1b;
+    transform:translateY(-2px);
+}
+
+/* ==========================================
+   EMPTY
+========================================== */
+
+.empty{
+    text-align:center;
+    color:#9ca3af;
+    padding:60px 20px;
+    font-size:14px;
+}
+
+/* ==========================================
+   ANIMATION
+========================================== */
+
+@keyframes fadeUp{
+
+    from{
+        opacity:0;
+        transform:translateY(20px);
+    }
+
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+
+}
+
+/* ==========================================
+   RESPONSIVE
+========================================== */
+
+@media(max-width:1200px){
+
+    .stats-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .content-grid{
+        grid-template-columns:1fr;
+    }
+
+    .right-panel{
+        order:-1;
+    }
+
+}
+
+@media(max-width:768px){
+
+    .main-content{
+        padding:20px;
+    }
+
+    .stats-grid{
+        grid-template-columns:1fr;
+    }
+
+    .chart-wrapper{
+        height:280px;
+    }
+
+    .chat-item{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .chat-top{
+        flex-direction:column;
+        align-items:flex-start;
+        gap:6px;
+    }
+
+}
+
 </style>

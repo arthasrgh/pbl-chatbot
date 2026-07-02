@@ -1,473 +1,165 @@
+<template>
+  <div class="login-page">
+
+    <div class="login-left">
+      <div class="overlay"></div>
+      <div class="left-content">
+        <img src="../assets/Logo_Boyo2.png" alt="Logo Bangkesbangpol" class="logo" />
+        <h1>Bangkesbangpol Boyolali</h1>
+        <h2>Dashboard Monitoring Chatbot</h2>
+        <p>Sistem Monitoring Chatbot WhatsApp Badan Kesatuan Bangsa dan Politik Kabupaten Boyolali</p>
+      </div>
+    </div>
+
+    <div class="login-right">
+      <div class="login-card">
+        
+        <div class="card-header">
+          <h2>Password Baru</h2>
+          <p>Silakan masukkan password baru Anda untuk akun administrator</p>
+        </div>
+
+        <div v-if="isSuccess" class="success-screen">
+          <div class="success-box">Password Anda berhasil diperbarui! Silakan kembali ke halaman login.</div>
+          <button @click="goToLogin" class="login-btn">KE HALAMAN LOGIN</button>
+        </div>
+
+        <form v-else @submit.prevent="submitNewPassword">
+          <div class="form-group">
+            <label>Password Baru</label>
+            <div class="password-box">
+              <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="Minimal 8 karakter" required :disabled="loading" />
+              <button type="button" class="toggle-password" @click="showPassword = !showPassword">
+                {{ showPassword ? "🙈" : "👁️" }}
+              </button>
+            </div>
+            <small class="password-hint">Password wajib menyertakan huruf besar, angka, dan karakter spesial.</small>
+          </div>
+
+          <div class="form-group">
+            <label>Konfirmasi Password Baru</label>
+            <div class="password-box">
+              <input v-model="confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" placeholder="Ulangi password" required :disabled="loading" />
+              <button type="button" class="toggle-password" @click="showConfirmPassword = !showConfirmPassword">
+                {{ showConfirmPassword ? "🙈" : "👁️" }}
+              </button>
+            </div>
+          </div>
+
+          <div v-if="error" class="error-box">{{ error }}</div>
+
+          <button type="submit" class="login-btn" :disabled="loading">
+            <span v-if="!loading">PERBARUI PASSWORD</span>
+            <span v-else>Memproses...</span>
+          </button>
+        </form>
+
+        <div class="footer-text">© 2026 Bangkesbangpol Boyolali</div>
+      </div>
+    </div>
+
+  </div>
+</template>
+
 <script setup>
-import { ref } from 'vue'
-import { useRoute,useRouter } from 'vue-router'
-import api from '../services/api'
-import logo from '../assets/Logo_Boyo2.png'
+import { ref, onMounted } from "vue"
+import { useRouter, useRoute } from "vue-router"
+import api from "../services/api"
 
-const route = useRoute()
 const router = useRouter()
+const route = useRoute()
 
-const token = route.query.token
-
-const password = ref('')
-const confirmPassword = ref('')
-
+const password = ref("")
+const confirmPassword = ref("")
+const token = ref("")
+const loading = ref(false)
+const error = ref("")
+const isSuccess = ref(false)
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 
-const errorMessage = ref('')
-const successMessage = ref('')
+onMounted(() => {
+  // Membaca token dari URL (?token=xxxxx)
+  if (route.query.token) {
+    token.value = route.query.token
+  } else {
+    error.value = "Token reset tidak ditemukan atau tidak valid."
+  }
+})
 
-const resetPassword = async () => {
+const goToLogin = () => { router.push("/login") }
 
-  errorMessage.value=''
-  successMessage.value=''
+const submitNewPassword = async () => {
+  error.value = ""
 
-  if(!password.value || !confirmPassword.value){
-
-    errorMessage.value =
-      'Semua field wajib diisi'
-
+  if (password.value !== confirmPassword.value) {
+    error.value = "Konfirmasi password tidak cocok."
     return
   }
 
-  if(password.value !== confirmPassword.value){
+  const pass = password.value
+  if (pass.length < 8) { error.value = "Password minimal 8 karakter."; return }
+  if (!/[A-Z]/.test(pass)) { error.value = "Password harus memiliki minimal satu huruf kapital."; return }
+  if (!/[0-9]/.test(pass)) { error.value = "Password harus memiliki minimal satu angka."; return }
+  if (!/[!@#$%^&*(),.?\":{}|<>_\-+=/\\[\]]/.test(pass)) { error.value = "Password harus memiliki karakter spesial."; return }
 
-    errorMessage.value =
-      'Konfirmasi password tidak cocok'
-
+  if (!token.value) {
+    error.value = "Token tidak valid. Silakan ajukan reset password kembali."
     return
   }
 
-  if(password.value.length < 8){
+  loading.value = true
+  try {
+    const response = await api.post("/reset-password", {
+      token: token.value,
+      password: password.value
+    })
 
-    errorMessage.value =
-      'Password minimal 8 karakter'
-
-    return
+    if (response.data.success || response.status === 200) {
+      isSuccess.value = true
+    }
+  } catch (err) {
+    error.value = err.response?.data?.message || "Gagal memperbarui password."
+  } finally {
+    loading.value = false
   }
-
-  try{
-
-    const res =
-      await api.post('/reset-password',{
-
-        token:token,
-        password:password.value
-
-      })
-
-    successMessage.value =
-      res.data.message
-
-    setTimeout(()=>{
-
-      router.push('/login')
-
-    },2000)
-
-  }catch(err){
-
-    errorMessage.value =
-      err.response?.data?.message
-      || 'Reset password gagal'
-  }
-}
-
-const goLogin=()=>{
-
-  router.push('/login')
 }
 </script>
 
-<template>
-
-<div class="page">
-
-<header class="header">
-
-<div class="header-left">
-
-<img
-:src="logo"
-class="header-logo"
-/>
-
-<span>
-Bakesbangpol Boyolali
-</span>
-
-</div>
-
-<button
-class="back-btn"
-@click="goLogin"
->
-Back
-</button>
-
-</header>
-
-<main class="main-content">
-
-<div class="reset-card">
-
-<h2>
-Reset Password
-</h2>
-
-<p class="desc">
-
-Masukkan password baru akun anda.
-
-</p>
-
-<p
-v-if="successMessage"
-class="success-text"
->
-
-{{successMessage}}
-
-</p>
-
-<p
-v-if="errorMessage"
-class="error-text"
->
-
-{{errorMessage}}
-
-</p>
-
-<label>Password Baru</label>
-
-<div class="password-box">
-
-<input
-v-model="password"
-:type="showPassword ? 'text':'password'"
-placeholder="Masukkan password baru"
-/>
-
-<button
-class="show-btn"
-type="button"
-@click="showPassword=!showPassword"
->
-
-<i
-:class="
-showPassword
-? 'fa-solid fa-eye-slash'
-: 'fa-solid fa-eye'
-"
-></i>
-
-</button>
-
-</div>
-
-<label>Konfirmasi Password</label>
-
-<div class="password-box">
-
-<input
-v-model="confirmPassword"
-:type="showConfirmPassword ? 'text':'password'"
-placeholder="Masukkan ulang password"
-/>
-
-<button
-class="show-btn"
-type="button"
-@click="
-showConfirmPassword=
-!showConfirmPassword
-"
->
-
-<i
-:class="
-showConfirmPassword
-? 'fa-solid fa-eye-slash'
-: 'fa-solid fa-eye'
-"
-></i>
-
-</button>
-
-</div>
-
-<button
-class="reset-btn"
-@click="resetPassword"
->
-
-Reset Password
-
-</button>
-
-<p
-class="login-link"
-@click="goLogin"
->
-
-Kembali ke Login
-
-</p>
-
-</div>
-
-</main>
-
-<footer class="footer">
-
-<div class="footer-container">
-
-<div class="footer-left">
-
-<img
-:src="logo"
-class="footer-logo"
-/>
-
-<div class="footer-text">
-
-<h3>
-
-Badan Kesatuan Bangsa
-dan Politik
-
-</h3>
-
-<p>
-
-Kabupaten Boyolali
-
-</p>
-
-<div class="contact-item">
-
-📞 (0276) 321087
-
-</div>
-
-<div class="contact-item">
-
-✉️ bakesbangpol@boyolali.go.id
-
-</div>
-
-</div>
-
-</div>
-
-<div class="footer-bottom">
-
-Copyright@2026 Boyolali.
-Developed by System Hub
-
-</div>
-
-</div>
-
-</footer>
-
-</div>
-
-</template>
-
 <style scoped>
-
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial,sans-serif;
-}
-
-.page{
-min-height:100vh;
-display:flex;
-flex-direction:column;
-background:#8d96a6;
-}
-
-.header{
-height:55px;
-background:#252742;
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:0 22px;
-}
-
-.header-left{
-display:flex;
-align-items:center;
-gap:10px;
-color:white;
-font-size:22px;
-font-weight:bold;
-}
-
-.header-logo{
-width:30px;
-}
-
-.back-btn{
-border:none;
-background:white;
-color:#252742;
-padding:8px 22px;
-border-radius:20px;
-font-weight:bold;
-cursor:pointer;
-}
-
-.main-content{
-flex:1;
-display:flex;
-justify-content:center;
-align-items:center;
-padding:50px 20px;
-}
-
-.reset-card{
-width:420px;
-background:#f3163a;
-border-radius:28px;
-padding:35px;
-color:white;
-}
-
-.reset-card h2{
-text-align:center;
-margin-bottom:10px;
-}
-
-.desc{
-text-align:center;
-margin-bottom:20px;
-font-size:14px;
-}
-
-.reset-card label{
-display:block;
-margin-bottom:8px;
-margin-top:14px;
-}
-
-.password-box{
-position:relative;
-}
-
-.reset-card input{
-width:100%;
-padding:14px 18px;
-border:none;
-border-radius:30px;
-outline:none;
-}
-
-.password-box input{
-padding-right:60px;
-}
-
-.show-btn{
-position:absolute;
-right:18px;
-top:50%;
-transform:translateY(-50%);
-border:none;
-background:transparent;
-cursor:pointer;
-font-size:18px;
-}
-
-.reset-btn{
-margin-top:25px;
-width:100%;
-border:none;
-background:white;
-color:black;
-font-weight:bold;
-padding:14px;
-border-radius:30px;
-cursor:pointer;
-}
-
-.login-link{
-margin-top:18px;
-text-align:center;
-font-size:14px;
-cursor:pointer;
-}
-
-.error-text{
-background:#ffd4d4;
-color:#a40000;
-padding:10px;
-border-radius:12px;
-margin-bottom:15px;
-text-align:center;
-}
-
-.success-text{
-background:#d4ffd9;
-color:#006b1b;
-padding:10px;
-border-radius:12px;
-margin-bottom:15px;
-text-align:center;
-}
-
-.footer{
-background:#f3f3f3;
-padding:35px 55px 15px;
-}
-
-.footer-left{
-display:flex;
-gap:18px;
-}
-
-.footer-logo{
-width:35px;
-}
-
-.footer-text h3{
-font-size:22px;
-}
-
-.footer-text p{
-margin:5px 0 15px;
-}
-
-.contact-item{
-margin-bottom:10px;
-}
-
-.footer-bottom{
-margin-top:25px;
-font-size:13px;
-}
-
-@media(max-width:600px){
-
-.reset-card{
-width:100%;
-}
-
-.header-left{
-font-size:18px;
-}
-
-.footer{
-padding:25px;
-}
-
-}
-
+*{ margin:0; padding:0; box-sizing:border-box; font-family:"Poppins",sans-serif; }
+.login-page{ width:100%; min-height:100vh; display:grid; grid-template-columns:1fr 1fr; background:#f8fafc; }
+.login-left{ position:relative; display:flex; justify-content:center; align-items:center; overflow:hidden; background:linear-gradient(135deg,#b71c1c,#d32f2f); color:#fff; padding:50px; }
+.overlay{ position:absolute; inset:0; background:rgba(0,0,0,.15); }
+.left-content{ position:relative; z-index:2; text-align:center; max-width:450px; }
+.logo{ width:150px; margin:0 auto 30px; animation:float 3s ease-in-out infinite; }
+.left-content h1{ font-size:36px; font-weight:700; margin-bottom:10px; }
+.left-content h2{ font-size:22px; margin-bottom:20px; font-weight:500; }
+.left-content p{ line-height:1.8; opacity:.95; font-size:15px; }
+.login-right{ display:flex; justify-content:center; align-items:center; padding:50px; background:#f5f7fb; }
+.login-card{ width:100%; max-width:430px; background:#fff; border-radius:20px; padding:40px; box-shadow:0 15px 40px rgba(0,0,0,.08); animation:fadeUp .6s ease; }
+.card-header{ text-align:center; margin-bottom:30px; }
+.card-header h2{ color:#b71c1c; font-size:30px; margin-bottom:10px; }
+.card-header p{ color:#6b7280; font-size:14px; }
+.form-group{ margin-bottom:20px; }
+.form-group label{ display:block; margin-bottom:8px; font-size:14px; font-weight:600; color:#374151; }
+.form-group input{ width:100%; padding:14px 16px; border:1px solid #d1d5db; border-radius:12px; font-size:15px; outline:none; transition:.3s; }
+.form-group input:focus{ border-color:#b71c1c; box-shadow:0 0 0 3px rgba(183,28,28,.15); }
+.form-group input:disabled{ background:#f3f4f6; cursor:not-allowed; }
+.password-hint { display:block; margin-top:6px; color:#6b7280; font-size:12px; line-height:1.4; }
+.password-box{ display:flex; }
+.password-box input{ border-radius:12px 0 0 12px; }
+.toggle-password{ width:60px; border:none; background:#b71c1c; color:#fff; cursor:pointer; border-radius:0 12px 12px 0; transition:.3s; font-size:16px; }
+.toggle-password:hover{ background:#8f1717; }
+.error-box, .success-box{ padding:12px; border-radius:10px; margin-bottom:20px; text-align:center; font-size:14px; }
+.error-box{ background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; }
+.success-box{ background:#dcfce7; color:#166534; border:1px solid #bbf7d0; line-height:1.5; }
+.success-screen { display: flex; flex-direction: column; gap:10px; }
+.login-btn{ width:100%; padding:15px; border:none; border-radius:12px; background:#b71c1c; color:#fff; font-size:16px; font-weight:700; cursor:pointer; transition:.3s; }
+.login-btn:hover{ background:#8f1717; transform:translateY(-2px); }
+.login-btn:disabled{ opacity:.7; cursor:not-allowed; transform:none; }
+.footer-text{ margin-top:25px; text-align:center; font-size:13px; color:#9ca3af; }
+@keyframes fadeUp{ from{ opacity:0; transform:translateY(30px); } to{ opacity:1; transform:translateY(0); } }
+@keyframes float{ 0%{ transform:translateY(0px); } 50%{ transform:translateY(-10px); } 100%{ transform:translateY(0px); } }
+@media(max-width:900px){ .login-page{ grid-template-columns:1fr; } .login-left{ display:none; } .login-right{ padding:25px; } .login-card{ max-width:100%; padding:30px; } }
 </style>

@@ -1,143 +1,203 @@
-      <template>
-        <div class="dashboard">
+<template>
+  <div class="dashboard">
 
-          <!-- SIDEBAR -->
-          <aside class="sidebar">
+    <!-- Sidebar -->
+    <Sidebar active="history" />
 
-            <div class="logo-area">
-              <img :src="logo" class="logo" />
+    <!-- Main -->
+    <main class="main-content">
 
-              <div>
-                <h2>Bangkesbangpol</h2>
-                <p>Dashboard Bot</p>
-              </div>
+      <Topbar
+        title="Riwayat Chat"
+        subtitle="Monitoring seluruh percakapan chatbot"
+      />
 
-            </div>
+      <!-- Toolbar -->
+      <div class="toolbar">
 
-            <div class="menu-section">
+        <input
+          v-model="search"
+          class="search-input"
+          type="text"
+          placeholder="Cari nomor WhatsApp..."
+        />
 
-              <button class="menu" @click="goDashboard">
-                <LayoutDashboard size="18" />
-                Dashboard
-              </button>
+        <button
+          class="refresh-btn"
+          @click="loadChats"
+        >
+          Refresh
+        </button>
 
-              <button class="menu active">
-                <MessageCircle size="18" />
-                Riwayat Chat
-              </button>
+      </div>
 
-              <button class="menu" @click="goManage">
-                <Users size="18" />
-                Manajemen Admin
-              </button>
+      <!-- Table -->
+      <div class="table-card">
 
-            </div>
+        <table>
 
-            <button class="logout-btn" @click="logout">
-              <LogOut size="18" />
-              Logout
-            </button>
+          <thead>
 
-          </aside>
+            <tr>
 
-          <!-- MAIN -->
-          <main class="main-content">
+              <th>No</th>
 
-            <!-- HEADER -->
-            <div class="top-header">
+              <th>Nomor</th>
 
-              <h1>Riwayat Chat</h1>
+              <th>Pesan</th>
 
-            </div>
+              <th>Sender</th>
 
-            <!-- CONTENT -->
-      <!-- CONTENT -->
-      <div class="content-area">
+              <th>Waktu</th>
 
-        <div class="chat-layout">
+              <th>Aksi</th>
 
-          <!-- SIDEBAR -->
-          <div class="chat-sidebar">
+            </tr>
 
-            <div
-              v-for="chat in chats"
+          </thead>
+
+          <tbody>
+
+            <tr
+              v-for="(chat,index) in filteredChats"
               :key="chat.id"
-              class="chat-user"
-              :class="{ 'active-chat': activeNumber === chat.nomor }"
-              @click="openChat(chat)"
             >
 
-              <div class="avatar"></div>
+              <td>{{ index + 1 }}</td>
 
-              <div class="chat-info">
+              <td>{{ chat.nomor }}</td>
 
-              <div
-                v-if="activeNumber === chat.nomor"
-                class="active-dot"
-              ></div>
+              <td class="message">
 
-                <h4>
-                  {{ chat.nomor }}
-                </h4>
+                {{ chat.pesan }}
 
-                <p>
-                  Chat terbaru
-                </p>
+              </td>
 
-              </div>
+              <td>
 
-            </div>
+                <span
+                  class="badge"
+                  :class="chat.sender"
+                >
 
-          </div>
+                  {{ chat.sender }}
 
-          <!-- CHAT -->
-          <div class="chat-box">
+                </span>
 
-            <!-- HEADER -->
-            <div class="chat-header">
+              </td>
 
-              {{ selectedChat.nomor }}
+              <td>
 
-            </div>
+                {{ formatTime(chat.created_at) }}
 
-            <!-- BODY -->
-            <div class="chat-body">
-              <div
-                v-for="(msg,index) in selectedChat.messages"
-                :key="msg.id"
-                class="message-row"
-                :class="msg.sender === 'bot' ? 'right' : 'left'"
+              </td>
+
+              <td>
+
+                <button
+                  class="detail-btn"
+                  @click="openChat(chat.nomor)"
+                >
+
+                  Detail
+
+                </button>
+
+              </td>
+
+            </tr>
+
+            <tr v-if="filteredChats.length==0">
+
+              <td
+                colspan="6"
+                class="empty"
               >
 
-            <div class="message-wrapper">
+                Tidak ada data.
 
-          <!-- BUBBLE -->
-            <div
-              class="message"
-              :class="
-                msg.sender === 'bot'
-                ? 'user-message'
-                : 'bot-message'
-              "
-            >
-            {{ msg.pesan }}
-          </div>
+              </td>
 
-          <!-- TIME -->
-          <div
-            class="message-time"
-            :class="
-              msg.sender === 'bot'
-              ? 'time-right'
-              : 'time-left'
-            "
-          >
-            {{ formatTime(msg.created_at) }}
-          </div>
+            </tr>
 
-        </div>
+          </tbody>
+
+        </table>
 
       </div>
+
+      <!-- ===================== -->
+      <!-- MODAL CHAT -->
+      <!-- ===================== -->
+
+      <div
+        v-if="showModal"
+        class="modal-overlay"
+        @click="showModal=false"
+      >
+
+        <div
+          class="chat-modal"
+          @click.stop
+        >
+
+          <!-- Header -->
+
+          <div class="modal-header">
+
+            <div>
+
+              <h3>
+
+                {{ selectedNumber }}
+
+              </h3>
+
+              <small>
+
+                Riwayat Percakapan
+
+              </small>
+
+            </div>
+
+            <button
+              class="close-btn"
+              @click="showModal=false"
+            >
+
+              ✕
+
+            </button>
+
+          </div>
+
+          <!-- Body -->
+
+          <div class="chat-body">
+
+            <div
+              v-for="msg in conversation"
+              :key="msg.id"
+              :class="[
+                'chat-bubble',
+                msg.sender=='user'
+                ?'user-chat'
+                :'bot-chat'
+              ]"
+            >
+
+              <p>
+
+                {{ msg.pesan }}
+
+              </p>
+
+              <span>
+
+                {{ formatTime(msg.created_at) }}
+
+              </span>
 
             </div>
 
@@ -147,484 +207,489 @@
 
       </div>
 
-          </main>
+    </main>
 
-        </div>
-      </template>
+  </div>
+</template>
 
-      <script setup>
-      import {
-        LayoutDashboard,
-        MessageCircle,
-        Users,
-        LogOut,
-        MessageSquareMore,
-        BarChart3,
-        Flame
-      } from "lucide-vue-next"
+<script setup>
 
-      import { ref, onMounted, nextTick } from "vue"
-      import { useRouter } from "vue-router"
-      import Chart from "chart.js/auto"
-      import api from "../services/api"
-      import logo from "../assets/Logo_Boyo2.png"
+import { ref, computed, onMounted } from "vue"
 
-      const router = useRouter()
+import Sidebar from "../components/Sidebar.vue"
+import Topbar from "../components/Topbar.vue"
 
-      const logout = () => {
-        localStorage.removeItem("isLogin")
-        router.push("/")
-      }
+import api from "../services/api"
 
-      const goDashboard = () => {
-        router.push('/dashboard')
-      }
+// ======================================
+// STATE
+// ======================================
 
-      const goManage = () => {
-        router.push('/manajemen')
-      }
+const chats = ref([])
 
-      const getChats = async () => {
-        try {
-          const response = await api.get(`/chats`)
+const conversation = ref([])
 
-          chats.value = response.data
+const showModal = ref(false)
 
-          if (!activeNumber.value && chats.value.length) {
-            openChat(chats.value[0])
-          }
+const selectedNumber = ref("")
 
-        } catch (error) {
-          console.log(error)
-        }
+const search = ref("")
 
-      }
+// ======================================
+// LOAD ALL CHAT
+// ======================================
 
-      const activeNumber = ref(null)
-      const chats = ref([])
+const loadChats = async()=>{
 
-      const selectedChat = ref({
-        nomor: '',
-        messages: []
-      })
+    try{
 
-      const openChat = async (chat) => {
-        activeNumber.value = chat.nomor
+        const res = await api.get("/chats")
 
-        try {
-          console.log('nomor dipilih:', chat.nomor)
+        chats.value = res.data
 
-          const response = await api.get(
-            `/chats/${encodeURIComponent(chat.nomor)}`
-          )
+    }
 
-          console.log('isi chat:', response.data)
+    catch(err){
 
-          selectedChat.value = {
-            nomor: chat.nomor,
-            messages: response.data
-          }
+        console.error(err)
 
-        } catch (error) {
-          console.log(error)
-        }
-      }
+    }
 
-      const formatTime = (time) => {
-        return new Date(time).toLocaleTimeString('id-ID', {
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-      }
+}
 
-          onMounted(() => {
+// ======================================
+// FILTER
+// ======================================
 
-      getChats()
+const filteredChats = computed(()=>{
 
-      /* setInterval(async () => {
+    if(search.value===""){
 
-        if(activeNumber.value){
+        return chats.value
 
-          const response = await api.get(
-            `/chats/${activeNumber.value}`
-          )
+    }
 
-          selectedChat.value.messages =
-            response.data
+    return chats.value.filter(chat=>{
 
-        }
+        return (
 
-      }, 3000) */
+            chat.nomor
+            .toLowerCase()
+            .includes(search.value.toLowerCase())
+
+            ||
+
+            chat.pesan
+            .toLowerCase()
+            .includes(search.value.toLowerCase())
+
+        )
 
     })
-      </script>
 
-      <style scoped>
-      /* CONTENT */
-      .content-area{
-      margin-top:80px;
-      height:calc(100vh - 80px);
-      width:100%;
-      overflow:hidden;
-      }
-      /* LAYOUT */
-      .chat-layout{
-      display:flex;
-      height:100%;
-      width:100%;
-      }
+})
 
-      /* SIDEBAR CHAT */
-      .chat-sidebar{
-      width:320px;
-      min-width:320px;
-      background:#94a0b5;
-      overflow-y:auto;
-      border-right:1px solid #7f8aa0;
-      }
+// ======================================
+// DETAIL CHAT
+// ======================================
 
-      /* ITEM */
-      .chat-user{
-        display:flex;
-        align-items:center;
-        gap:12px;
-        padding:14px;
-        margin:6px 8px;
-        border-radius:16px;
-        cursor:pointer;
-        transition:all .2s ease;
-      }
+const openChat = async(nomor)=>{
 
-      .chat-user{
-        margin:8px;
-        border-radius:20px
-      }
+    try{
 
-      .chat-user:hover{
-      background:#8a96aa;
-      }
+        const res = await api.get(
 
-      .active-chat .chat-info h4{
-        color:white;
-        font-weight:bold;
-      }
+            "/chats/"+encodeURIComponent(nomor)
 
-      .active-chat .chat-info p{
-        color:#f3f4f6;
-      }
+        )
 
-      .active-dot{
-          width:10px;
-          height:10px;
-          border-radius:50%;
-          background:#22c55e;
-          margin-left:auto;
-      }
+        conversation.value = res.data
 
-      .chat-user{
-        transition:all .2s ease;
-      }
+        selectedNumber.value = nomor
 
-      .active-chat{
-        background:#ff4338;
-        border-radius:16px;
-      }
+        showModal.value = true
 
-      /* AVATAR */
-      .avatar{
-      width:40px;
-      height:40px;
-      border-radius:50%;
-      background:#d9d9d9;
-      flex-shrink:0;
-      }
+    }
 
-      /* INFO */
-      .chat-info{
-      flex:1;
-      }
+    catch(err){
 
-      .chat-info h4{
-      font-size:14px;
-      color:white;
-      margin-bottom:3px;
-      }
+        console.error(err)
 
-      .chat-info p{
-      font-size:12px;
-      color:#e5e7eb;
-      }
+    }
 
-      /* CHAT BOX */
-      .chat-box{
-      flex:1;
-      width:100%;
-      display:flex;
-      flex-direction:column;
-      background:#ddd8d1;
-      border-radius:20px;
-      overflow:hidden;
-      }
+}
 
-      /* HEADER */
-      .chat-header{
-      background:#ff4338;
-      color:white;
-      padding:18px 22px;
-      font-size:22px;
-      font-weight:bold;
-      border-radius:0 0 16px 16px;
-      margin-top:0px;
-      }
+// ======================================
+// FORMAT TANGGAL
+// ======================================
 
+const formatTime=(datetime)=>{
 
-      /* BODY */
-      .chat-body{
-      flex:1;
-      margin:0;
-      padding:10px 20px;
-      overflow-y:auto;
-      display:flex;
-      flex-direction:column;
-      gap:16px;
-      width:100%;
-      }
+    if(!datetime){
 
-      /* MESSAGE */
-      .message-row{
-      display:flex;
-      width:100%;
-      }
+        return "-"
 
-      .left{
-      justify-content:flex-start;
-      }
+    }
 
-      .right{
-      justify-content:flex-end;
-      }
+    return new Date(datetime)
 
-      .message{
-      max-width:320px;
-      padding:10px 14px 6px;
-      border-radius:20px;
-      font-size:14px;
-      line-height:1.5;
-      word-break:break-word;
-      }
+    .toLocaleString("id-ID",{
 
-      .message-wrapper{
-      display:flex;
-      flex-direction:column;
-      max-width:320px;
-      }
+        day:"2-digit",
 
-      .message-time{
-      font-size:11px;
-      color:#555;
-      margin-top:4px;
-      }
+        month:"short",
 
-      .time-right{
-      text-align:right;
-      }
+        year:"numeric",
 
-      .time-left{
-      text-align:left;
-      }
+        hour:"2-digit",
 
-      /* BOT */
-      .bot-message{
-      background:white;
-      color:#111827;
-      }
+        minute:"2-digit"
 
-      /* USER */
-      .user-message{
-      background:#c9f7a9;
-      color:#111827;
-      }
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        font-family: sans-serif;
-      }
+    })
 
-      .dashboard {
-        display: flex;
-        min-height: 100vh;
-        background:#f4f7fb;
-      }
+}
 
-      .sidebar {
-      width:260px;
-      background:#111827;
-      padding:25px 20px;
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between; 
-      }
+// ======================================
+// AUTO LOAD
+// ======================================
 
+onMounted(()=>{
 
-      .logo-area{
-      display:flex;
-      align-items:center;
-      gap:14px;
-      margin-bottom:40px;
-      }
+    loadChats()
 
-      .logo{
-      width:50px;
-      height:50px;
-      }
+})
 
-      .logo-area h2{
-      color:white;
-      font-size:18px;
-      }
+</script>
 
-      .logo-area p{
-      color:#9ca3af;
-      font-size:13px;
-      }
+<style scoped>
 
-      .menu-section{
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      }
+/* =========================================
+   LAYOUT
+========================================= */
 
-      .menu{
-      border:none;
-      padding:14px;
-      border-radius:14px;
-      display:flex;
-      align-items:center;
-      gap:12px;
-      font-size:15px;
-      font-weight:600;
-      cursor:pointer;
-      background:transparent;
-      color:#d1d5db;
-      transition:0.3s;
-      }
+.dashboard{
+    display:flex;
+    min-height:100vh;
+    background:#f4f6fb;
+}
 
-      .menu:hover{
-      background:#1f2937;
-      }
+.main-content{
+    flex:1;
+    padding:30px;
+    overflow-y:auto;
+}
 
-      .active{
-      background:#ef4444;
-      color:white;
-      }
+/* =========================================
+   TOOLBAR
+========================================= */
 
-      /* Logout */
-      .logout-btn {
-      border:none;
-      padding:14px;
-      border-radius:14px;
-      background:#ef4444;
-      color:white;
-      font-weight:bold;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:10px;
-      cursor:pointer;
-      }
+.toolbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
+    margin-bottom:24px;
+}
 
-      /* MAIN */
-      .main-content{
-      flex:1;
-      display:flex;
-      flex-direction:column;
-      background:#8692a3;
-      overflow:hidden;
-      }
+.search-input{
+    flex:1;
+    height:48px;
+    padding:0 18px;
+    border:1px solid #dcdfe6;
+    border-radius:12px;
+    outline:none;
+    font-size:14px;
+    transition:.3s;
+}
 
-      /* HEADER FULL WIDTH */
-      .top-header {
-        position: fixed;
-        top: 0;
-        left: 260px; 
-        right: 0;
-        background: #ffffff;
-        padding: 20px 40px;
-        z-index: 100;
-      }
+.search-input:focus{
+    border-color:#b71c1c;
+    box-shadow:0 0 0 3px rgba(183,28,28,.12);
+}
 
-      .top-header h1 {
-        font-size: 26px;
-        font-weight: 700;
-      }
+.refresh-btn{
+    border:none;
+    background:#b71c1c;
+    color:#fff;
+    padding:12px 22px;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:600;
+    transition:.3s;
+}
 
-      /* CARD LUAR (FULL, TIDAK CENTER) */
-      .card-wrapper {
-        background: #f4f4f4;
-        border-radius: 35px;
-        padding: 25px;
-        width: 100%;
-      }
+.refresh-btn:hover{
+    background:#8b1111;
+}
 
-      /* TITLE */
-      .card-wrapper h2 {
-        font-size: 20px;
-        margin-bottom: 20px;
-      }
+/* =========================================
+   TABLE
+========================================= */
 
-      /* GRID */
-      .stats {
-        display: flex;
-        gap: 20px;
-      }
+.table-card{
+    background:#fff;
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.06);
+}
 
-      /* CARD DALAM */
-      .card {
-        flex: 1;
-        height: 130px;
-        border-radius: 30px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-      }
+table{
+    width:100%;
+    border-collapse:collapse;
+}
 
-      /* TEXT */
-      .card h3 {
-        font-size: 32px;
-        margin-bottom: 8px;
-      }
+thead{
+    background:#b71c1c;
+    color:white;
+}
 
-      .card p {
-        font-size: 14px;
-        font-weight: 600;
-      }
+thead th{
+    padding:18px;
+    font-size:14px;
+    text-align:left;
+}
 
-      /* RESPONSIVE */
-      @media(max-width:900px){
+tbody td{
+    padding:16px 18px;
+    border-bottom:1px solid #eef2f7;
+    font-size:14px;
+}
 
-      .dashboard{
-      flex-direction:column;
-      }
+tbody tr{
+    transition:.25s;
+}
 
-      .sidebar{
-      width:100%;
-      }
+tbody tr:hover{
+    background:#fff5f5;
+}
 
-      .topbar{
-      flex-direction:column;
-      align-items:flex-start;
-      gap:20px;
-      }
+.message{
+    max-width:350px;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+}
 
-      }
+.empty{
+    text-align:center;
+    padding:40px;
+    color:#999;
+}
 
-      html,
-      body,
-      #app{
-      height:100%;
-      width:100%;
-      overflow:hidden;
-      }
-      </style>
+/* =========================================
+   BADGE
+========================================= */
+
+.badge{
+    display:inline-block;
+    padding:6px 12px;
+    border-radius:30px;
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+}
+
+.badge.user{
+    background:#dcfce7;
+    color:#15803d;
+}
+
+.badge.bot{
+    background:#dbeafe;
+    color:#1d4ed8;
+}
+
+/* =========================================
+   BUTTON
+========================================= */
+
+.detail-btn{
+    border:none;
+    background:#2563eb;
+    color:white;
+    padding:8px 16px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:.25s;
+}
+
+.detail-btn:hover{
+    background:#1d4ed8;
+}
+
+/* =========================================
+   MODAL
+========================================= */
+
+.modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.45);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:999;
+}
+
+.chat-modal{
+    width:720px;
+    max-width:95%;
+    height:650px;
+    background:white;
+    border-radius:18px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    animation:fadeUp .3s;
+}
+
+/* =========================================
+   HEADER
+========================================= */
+
+.modal-header{
+    background:#b71c1c;
+    color:white;
+    padding:18px 22px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.modal-header h3{
+    margin:0;
+    font-size:18px;
+}
+
+.modal-header small{
+    opacity:.8;
+}
+
+.close-btn{
+    border:none;
+    background:none;
+    color:white;
+    font-size:22px;
+    cursor:pointer;
+}
+
+/* =========================================
+   CHAT BODY
+========================================= */
+
+.chat-body{
+    flex:1;
+    overflow-y:auto;
+    padding:20px;
+    background:#ece5dd;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+/* Bubble */
+
+.chat-bubble{
+    max-width:75%;
+    padding:12px 16px;
+    border-radius:16px;
+    display:flex;
+    flex-direction:column;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+
+.chat-bubble p{
+    margin:0;
+    line-height:1.5;
+    word-break:break-word;
+}
+
+.chat-bubble span{
+    margin-top:8px;
+    font-size:11px;
+    color:#666;
+    text-align:right;
+}
+
+/* User */
+
+.user-chat{
+    align-self:flex-end;
+    background:#dcf8c6;
+}
+
+/* Bot */
+
+.bot-chat{
+    align-self:flex-start;
+    background:white;
+}
+
+/* =========================================
+   SCROLLBAR
+========================================= */
+
+.chat-body::-webkit-scrollbar{
+    width:8px;
+}
+
+.chat-body::-webkit-scrollbar-thumb{
+    background:#cbd5e1;
+    border-radius:20px;
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media(max-width:900px){
+
+.toolbar{
+    flex-direction:column;
+    align-items:stretch;
+}
+
+.table-card{
+    overflow-x:auto;
+}
+
+table{
+    min-width:850px;
+}
+
+.chat-modal{
+    width:95%;
+    height:90vh;
+}
+
+.chat-bubble{
+    max-width:90%;
+}
+
+}
+
+/* =========================================
+   ANIMATION
+========================================= */
+
+@keyframes fadeUp{
+
+from{
+
+opacity:0;
+
+transform:translateY(20px);
+
+}
+
+to{
+
+opacity:1;
+
+transform:translateY(0);
+
+}
+
+}
+
+</style>

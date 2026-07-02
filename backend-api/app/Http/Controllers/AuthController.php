@@ -10,11 +10,14 @@ use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
+    // ===========================================
+    // LOGIN
+    // ===========================================
     public function login(Request $req)
     {
         $req->validate([
-            'email'=>'required|email',
-            'password'=>[
+            'email' => 'required|email',
+            'password' => [
                 'required',
                 'min:8',
                 'regex:/[A-Z]/',
@@ -24,133 +27,149 @@ class AuthController extends Controller
         ]);
 
         $admin = DB::table('admins')
-    ->whereRaw('BINARY email = ?', [$req->email])
-    ->first();
-
-        if(!$admin){
-            return response()->json([
-                'success'=>false,
-                'message'=>'Email tidak ditemukan'
-            ],401);
-        }
-
-        if(!Hash::check($req->password,$admin->password)){
-            return response()->json([
-                'success'=>false,
-                'message'=>'Password salah'
-            ],401);
-        }
-
-        return response()->json([
-            'success'=>true,
-            'message'=>'Login berhasil'
-        ]);
-    }
-
-    public function forgotPassword(Request $req)
-{
-    $req->validate([
-        'email'=>'required|email'
-    ]);
-
-    $admin = DB::table('admins')
-        ->where('email',$req->email)
-        ->first();
-
-    if(!$admin){
-
-        return response()->json([
-            'message'=>'Email tidak ditemukan'
-        ],404);
-    }
-
-    $token = Str::random(64);
-
-    DB::table('password_reset_tokens')
-        ->updateOrInsert(
-
-            ['email'=>$req->email],
-
-            [
-                'token'=>$token,
-                'created_at'=>now()
-            ]
-        );
-
-    $link =
-        "http://localhost:5173/reset-password?token=$token";
-
-    Mail::raw(
-
-        "Klik link berikut untuk reset password:\n$link",
-
-        function($message) use ($req){
-
-            $message
-                ->to($req->email)
-                ->subject('Reset Password');
-
-        }
-    );
-
-    return response()->json([
-        'message'=>'Link reset berhasil dikirim'
-    ]);
-}
-
-public function resetPassword(Request $req)
-{
-    $req->validate([
-
-        'token'=>'required',
-
-        'password'=>[
-            'required',
-            'min:8',
-            'regex:/[A-Z]/',
-            'regex:/[0-9]/',
-            'regex:/[!@#$%^&*(),.?":{}|<>_]/'
-        ]
-
-    ]);
-
-    $reset =
-        DB::table('password_reset_tokens')
-            ->where('token',$req->token)
+            ->whereRaw('BINARY email = ?', [$req->email])
             ->first();
 
-    if(!$reset){
+        if (!$admin) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Email tidak ditemukan'
+            ], 401);
+
+        }
+
+        if (!Hash::check($req->password, $admin->password)) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Password salah'
+            ], 401);
+
+        }
 
         return response()->json([
-            'message'=>'Token tidak valid'
-        ],400);
+            'success' => true,
+            'message' => 'Login berhasil',
+
+            'user' => [
+
+                'id' => $admin->id,
+                'nama' => $admin->nama,
+                'email' => $admin->email,
+                'role' => $admin->role
+
+            ]
+
+        ]);
     }
 
-    DB::table('admins')
-        ->where(
-            'email',
-            $reset->email
-        )
-        ->update([
+    // ===========================================
+    // FORGOT PASSWORD
+    // ===========================================
+    public function forgotPassword(Request $req)
+    {
+        $req->validate([
+            'email' => 'required|email'
+        ]);
 
-            'password'=>
-                Hash::make(
-                    $req->password
-                ),
+        $admin = DB::table('admins')
+            ->where('email', $req->email)
+            ->first();
 
-            'updated_at'=>now()
+        if (!$admin) {
+
+            return response()->json([
+                'message' => 'Email tidak ditemukan'
+            ], 404);
+
+        }
+
+        $token = Str::random(64);
+
+        DB::table('password_reset_tokens')
+            ->updateOrInsert(
+
+                ['email' => $req->email],
+
+                [
+                    'token' => $token,
+                    'created_at' => now()
+                ]
+
+            );
+
+        $link =
+            "http://localhost:5173/reset-password?token=$token";
+
+        Mail::raw(
+
+            "Klik link berikut untuk reset password:\n$link",
+
+            function ($message) use ($req) {
+
+                $message
+                    ->to($req->email)
+                    ->subject('Reset Password');
+
+            }
+
+        );
+
+        return response()->json([
+            'message' => 'Link reset berhasil dikirim'
+        ]);
+    }
+
+    // ===========================================
+    // RESET PASSWORD
+    // ===========================================
+    public function resetPassword(Request $req)
+    {
+        $req->validate([
+
+            'token' => 'required',
+
+            'password' => [
+
+                'required',
+                'min:8',
+                'regex:/[A-Z]/',
+                'regex:/[0-9]/',
+                'regex:/[!@#$%^&*(),.?":{}|<>_]/'
+
+            ]
 
         ]);
 
-    DB::table('password_reset_tokens')
-        ->where(
-            'email',
-            $reset->email
-        )
-        ->delete();
+        $reset = DB::table('password_reset_tokens')
+            ->where('token', $req->token)
+            ->first();
 
-    return response()->json([
-        'message'=>'Password berhasil direset'
-    ]);
-}
+        if (!$reset) {
+
+            return response()->json([
+                'message' => 'Token tidak valid'
+            ], 400);
+
+        }
+
+        DB::table('admins')
+            ->where('email', $reset->email)
+            ->update([
+
+                'password' => Hash::make($req->password),
+
+                'updated_at' => now()
+
+            ]);
+
+        DB::table('password_reset_tokens')
+            ->where('email', $reset->email)
+            ->delete();
+
+        return response()->json([
+            'message' => 'Password berhasil direset'
+        ]);
+    }
 }
